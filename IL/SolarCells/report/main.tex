@@ -8,9 +8,18 @@
 
 \usepackage{pgfplots}
 \usepackage{pgfplotstable}
+\pgfplotsset{compat=1.18}
 \usepackage{booktabs}
 \usepackage{array}
 \usepackage{colortbl}
+
+\pgfplotstableset{
+col sep=tab,
+every head row/.style={before row=\hline,after row=\hline},
+every last row/.style={after row=\hline},
+/pgfplots/table/column name={\textbf{#1}},
+/pgf/number format/read comma as period=true
+}
 
 \begin{document}
 
@@ -21,5 +30,27 @@ The solar cell was connected to a multimeter with two wires and the optimal dire
 Then, the lamp was mounted on a holder in the highest possible position and the solar cell was placed under it. The light source was lowered averagely 30 times and after every lowering the value of illuminance in lx and circuit current in mA were measured. During the experiment measured range of multimeter was changed to 20mA when it became too high.
 \par
 All the data were entered in Google Sheets, the table is shown on the second page. To find the value of power of light Pv in mW for each value of illuminance the equation $Pv (mW) = E \cdot S \cdot 3.5 \cdot 10^{-4}$ was used, where E is given in lx and the S in $cm^2$ ($S = 9cm^2$).
+
+\pgfplotstabletypeset[
+columns/E/.style={column name=E, lx},
+columns/I/.style={column name=I, mA},
+columns/Pv/.style={column name=Pv, W},
+]{task1.txt}
+
+\begin{figure}[h!]
+\centering
+\begin{tikzpicture}
+\begin{axis}
+  \addplot table [
+  x=E,
+  y=I
+  ] {task1.txt};
+  \addplot table [
+  x=E,
+  y=Pv
+  ] {task1.txt};
+\end{axis}
+\end{tikzpicture}
+\end{figure}
 
 \end{document}
