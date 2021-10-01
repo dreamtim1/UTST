@@ -33,11 +33,17 @@ Triangles AOB and BCD are isosceles, so they have all other angles equal
 \par
 $=> \triangle AOB \sim \triangle BCD$
 \par
-It means, that $\Delta v / v = \Delta x / R$. Dividing this expression by time, we get:
+It means, that $\Delta v / v = \Delta x / R$ (the sector is small so we can say that the path in a straight line is equal to the path in an arc). Dividing this expression by time, we get:
 \begin{center}
 \[ \scalebox{1.75}{$\frac{a}{v} = \frac{v}{R} => a = \frac{v^2}{R}$} \]
 \end{center}
-\par
+We can also come up with such formula more formally, using limits: let's say that $\Delta y$ is the changing the coordinate along the axis tangent to the circle and $\Delta z$ is the changing the coordinate along the axis perpendicular to the tangent, that is, parallel to the radius:
+\begin{center}
+\[ \scalebox{1}{$R^2 + \Delta y^2 = (R + \Delta z)^2$} \]
+\[ \scalebox{1}{$\Delta y = \sqrt{\Delta z^2 + 2R\Delta z}$} \]
+\[ \scalebox{1}{$\Delta z = at^2 / 2, \Delta y = vt = v\sqrt{2\Delta z / a}$} \]
+\[ \scalebox{1}{$\lim_{\Delta z\to 0} v = \sqrt{\frac{a(2R + \Delta z)}{2}} = \sqrt{aR}$} \]
+\end{center}
 Returning to the task, now it is easy to calculate the first cosmic velocity:
 \begin{center}
 \[ \scalebox{1.5}{$v = \sqrt{gR}$} \]
