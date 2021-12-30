@@ -8,6 +8,7 @@
 \pgfplotsset{compat=1.18}
 \usepackage{pgfplotstable}
 \usepackage{circuitikz}
+\usepackage{float}
 
 \pgfplotstableset{
     every head row/.style={
@@ -121,6 +122,255 @@ assign column name/.style={
 \newpage
 \section{Connecting solar cells into a solar panel}
 We studied two cases: solar cells were connected in series and in parallel. The solar cell was placed in the same place in both experiments, the light source was fixed to achieve constant illuminance equal to the illuminance in the previous task.
+\begin{figure}[h]
+\centering
+\begin{circuitikz} \draw
+    (0,0) to[battery] (0,4)
+      -- (2,4) to[battery] (2,0)
+      -- (0,0)
+    (2,0) -- (6,0)
+      to[european resistor] (6,4)
+      to[rmeterwa, t=A] (2,4)
+    (6,0) -- (10,0)
+    to[rmeterwa, t=V] (10,4)
+      -- (6,4)
+    ;
+\end{circuitikz}
+\caption{Two solar cells connected to the circuit in parallel}
+\label{fig:task3_parallel}
+\end{figure}
 
+\begin{figure}[h]
+    \centering
+    \begin{circuitikz} \draw
+        (2,4) to[battery] (2,2)
+          to[battery] (2,0)
+        (2,0) -- (6,0)
+          to[european resistor] (6,4)
+          to[rmeterwa, t=A] (2,4)
+        (6,0) -- (10,0)
+        to[rmeterwa, t=V] (10,4)
+          -- (6,4)
+        ;
+    \end{circuitikz}
+    \caption{Two solar cells connected to the circuit in series}
+    \label{fig:task3_series}
+    \end{figure}
+
+The illuminance was 3390 lx and $P_v$ was 10.58 mW, based on the formula that is given in the section 1. The obtained I-V characteristics are presented in the tables below.
+
+\begin{table}[h]
+    \centering
+    \pgfplotstabletypeset[
+    columns/R/.style={column name=R (Ohm)},
+    columns/U/.style={
+        column name=U (V),
+        fixed zerofill,precision=3
+        },
+    columns/I/.style={
+        column name=I (mA),
+        fixed zerofill,precision=3
+        },
+    columns/Pe/.style={
+        column name=Pe (mW),
+        fixed zerofill,precision=3
+        },
+    columns/Eff/.style={
+        column name=$\eta$ (\%),
+        fixed zerofill,precision=3
+        },
+    assign column name/.style={
+        /pgfplots/table/column name={\textbf{#1}}
+        }
+    ]{task3_parallel.txt}
+    \caption{Electrical I-V characteristics of the two solar cells connected in parallel for light 3390 lx}
+    \label{tab:task3_parallel}
+\end{table}
+
+\begin{table}[h]
+    \centering
+    \pgfplotstabletypeset[
+        columns/R/.style={column name=R (Ohm)},
+        columns/U/.style={
+            column name=U (V),
+            fixed zerofill,precision=3
+            },
+        columns/I/.style={
+            column name=I (mA),
+            fixed zerofill,precision=3
+            },
+        columns/Pe/.style={
+            column name=Pe (mW),
+            fixed zerofill,precision=3
+            },
+        columns/Eff/.style={
+            column name=$\eta$ (\%),
+            fixed zerofill,precision=3
+            },
+        assign column name/.style={
+            /pgfplots/table/column name={\textbf{#1}}
+            }
+        ]{task3_series.txt}
+    \caption{Electrical I-V characteristics of the two solar cells connected in series for light 3390 lx}
+    \label{tab:task3_series}
+\end{table}
+
+Based on this data, the following curves were plotted: Current-Voltage , Power-Voltage, Efficiency-Voltage, Power-Resistance.
+
+\clearpage
+\centering
+\begin{tikzpicture}
+    \begin{axis}[
+        title={I-U curves},
+        xlabel={Voltage, V},
+        ylabel={Current, mA},
+        ymajorgrids=true,
+        xmajorgrids=true,
+        grid style=dashed,
+        legend columns=3,
+        legend style={at={(0.5,-0.35)},anchor=south}
+        ]
+    \legend{}
+    \addplot[
+        color=blue,
+        mark=square,
+        ]
+        table[x = U, y = I]{task2.txt};
+        \addlegendentry{single cell}
+    
+    \addplot[
+        color=red,
+        mark=triangle,
+        ]
+        table[x = U, y = I]{task3_series.txt};
+        \addlegendentry{2 in series}
+    
+    \addplot[
+        color=green,
+        mark=*,
+        ]
+        table[x = U, y = I]{task3_parallel.txt};
+        \addlegendentry{2 in parallel}
+    \end{axis}
+\end{tikzpicture}
+
+\centering
+\begin{tikzpicture}
+    \begin{axis}[
+        title={Pe-U curves},
+        xlabel={Voltage, V},
+        ylabel={Electrical power, mW},
+        ymajorgrids=true,
+        xmajorgrids=true,
+        grid style=dashed,
+        legend columns=3,
+        legend style={at={(0.5,-0.35)},anchor=south}
+        ]
+    \legend{}
+    \addplot[
+        color=blue,
+        mark=square,
+        ]
+        table[x = U, y = Pe]{task2.txt};
+        \addlegendentry{single cell}
+    
+    \addplot[
+        color=red,
+        mark=triangle,
+        ]
+        table[x = U, y = Pe]{task3_series.txt};
+        \addlegendentry{2 in series}
+    
+    \addplot[
+        color=green,
+        mark=*,
+        ]
+        table[x = U, y = Pe]{task3_parallel.txt};
+        \addlegendentry{2 in parallel}
+    \end{axis}
+\end{tikzpicture}
+
+\centering
+\begin{tikzpicture}
+    \begin{axis}[
+        title={Efficiency \%},
+        xlabel={Voltage, V},
+        ylabel={Efficiency \%},
+        ymajorgrids=true,
+        xmajorgrids=true,
+        grid style=dashed,
+        legend columns=3,
+        legend style={at={(0.5,-0.35)},anchor=south}
+        ]
+    \legend{}
+    \addplot[
+        color=blue,
+        mark=square,
+        ]
+        table[x = U, y = Eff]{task2.txt};
+        \addlegendentry{single cell}
+    
+    \addplot[
+        color=red,
+        mark=triangle,
+        ]
+        table[x = U, y = Eff]{task3_series.txt};
+        \addlegendentry{2 in series}
+    
+    \addplot[
+        color=green,
+        mark=*,
+        ]
+        table[x = U, y = Eff]{task3_parallel.txt};
+        \addlegendentry{2 in parallel}
+    \end{axis}
+\end{tikzpicture}
+
+\centering
+\begin{tikzpicture}
+    \begin{axis}[
+        title={Pe-R curves},
+        xlabel={Resistance, $\Omega$},
+        ylabel={Electrical power, mW},
+        ymajorgrids=true,
+        xmajorgrids=true,
+        grid style=dashed,
+        legend columns=3,
+        legend style={at={(0.5,-0.35)},anchor=south}
+        ]
+    \legend{}
+    \addplot[
+        color=blue,
+        mark=square,
+        ]
+        table[x = R, y = Pe]{task2.txt};
+        \addlegendentry{single cell}
+    
+    \addplot[
+        color=red,
+        mark=triangle,
+        ]
+        table[x = R, y = Pe]{task3_series.txt};
+        \addlegendentry{2 in series}
+    
+    \addplot[
+        color=green,
+        mark=*,
+        ]
+        table[x = R, y = Pe]{task3_parallel.txt};
+        \addlegendentry{2 in parallel}
+    \end{axis}
+\end{tikzpicture}
+
+\section*{Conclusion}
+\raggedright
+Based on theese curves, we can say that:
+\begin{itemize}
+\item For in parallel configuration higher current is observed in compare with single cell and in series configurations
+\item For multiple sollar cells connected in parallel or in series higher electrical power is observed (it is simply becuase there are more cells)
+\item Hovewer, maximum efficiency is the same in all cases
+\item Maximum value of efficiency is hited when voltage isn't very law and isn't very high
+\item Maximum efficiency in the case of a series connection is achieved at higher voltage values than in other cases
+\end{itemize}
 
 \end{document}
