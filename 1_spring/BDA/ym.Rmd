@@ -1,0 +1,162 @@
+---
+title: "Practical session 2: the basics of regression"
+output: html_notebook
+---
+
+# Let's prepare R for a new analysis
+
+- Clear workspace
+- Restart R
+
+
+# If you haven't installed tidyverse, please do it now.
+
+```{r}
+install.packages(tidyverse)
+```
+
+# Load necessary package
+
+```{r}
+library(tidyverse)
+```
+
+
+
+# Let's simulate some data
+
+```{r}
+
+hippodata <- tibble(speed= c(20, 25, 32, 37, 34, 39, 36, 44, 48, 37, 28, 35, 32, 36, 38, 43, 41, 48, 45, 52),
+                    tail_length = c(15, 12, 18, 14, 24, 22, 19, 30, 26, 32, 17, 16, 20, 22, 26, 25, 28, 28, 30, 32),
+                    sex= rep(c(0, 1), each=10))
+
+
+
+```
+
+
+```{r eval=FALSE}
+hippodata = bind_rows(
+  tibble(
+    speed = c(20, 25, 32, 37, 34, 39, 36, 44, 48, 37), 
+    sex = c("Female"),
+    tail_length = c(15, 12, 18, 14, 24, 22, 19, 30, 26, 32)), 
+  tibble(
+    speed = c(28, 35, 32, 36, 38, 43, 41, 48, 45, 52),
+    sex = c("Male"),
+    tail_length = c(17, 16, 20, 22, 26, 25, 28, 28, 30, 32)))
+```
+
+Let's view our data
+
+```{r}
+hippodata
+```
+
+# Average running speed in population
+
+## EDA
+
+Summary table
+
+```{r}
+hippodata %>% 
+  summarise(mean = mean(speed),
+            sd = sd(speed))
+```
+
+## Model
+
+```{r}
+m1 = lm(speed ~ 1, data = hippodata)
+
+summary(m1)
+```
+
+Plot your model
+
+```{r}
+plot(data = hippodata,
+        speed ~ 1)
+abline(m1)
+```
+
+
+# Running speed difference between sexes
+
+## EDA
+
+Summary table
+
+```{r}
+hippodata %>% 
+  group_by(sex) %>% 
+  summarise(mean = mean(speed),
+            sd = sd(speed))
+```
+
+
+Plot
+
+```{r}
+hippodata %>% 
+  ggplot(aes(sex, speed))+
+  geom_point()
+```
+## Model
+
+```{r}
+m2 = lm(speed ~ sex, data = hippodata)
+
+summary(m2)
+```
+
+Plot your model
+
+```{r}
+ggplot(hippodata, aes(sex, speed)) + geom_point() + geom_abline(aes(slope= 4.6, intercept=35.2))
+```
+
+
+```{r eval=FALSE}
+plot(data = hippodata,
+        speed ~ sex)
+abline(m2)
+```
+
+
+
+# Effect of tail length on running speed
+
+## EDA
+
+```{r}
+hippodata %>% 
+  ggplot(aes(tail_length, speed))+
+  geom_point()
+```
+
+
+## Model
+
+```{r}
+m3 = lm(speed ~ tail_length, data = hippodata)
+
+summary(m3)
+```
+
+Plot your model
+
+```{r}
+plot(data = hippodata,
+        speed ~ tail_length)
+abline(m3)
+```
+
+```{r}
+plot(residuals(m3))
+```
+
+
+
