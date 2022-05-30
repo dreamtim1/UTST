@@ -1,0 +1,409 @@
+---
+title: "Multi-level modelling 2"
+output: html_notebook
+---
+
+# Preparation
+
+ Clear workspace
+
+- Be sure that correct project is opened
+
+- Install necessary packages
+
+```{r}
+install.packages(c("tidybayes"))
+```
+
+- Define knitr  settings
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.width = 6, fig.height = 3)
+```
+
+- make a folder "models" into your project folder
+
+- load necessary packages
+
+```{r}
+library(tidyverse)
+library(brms)
+library(see)
+library(dagitty)
+library(ggdag)
+library(patchwork)
+library(tidybayes)
+options(mc.cores = parallel::detectCores())
+```
+
+# Data
+
+Admission data of an university. Are female students discriminated?
+```{r message=FALSE}
+ucb = read_csv("UCBadmit.csv")
+ucb = ucb %>% 
+  mutate(success.rate = admit/applications)
+ucb
+```
+
+# Is these a discrimination?
+
+This is what the dean saw:
+
+```{r echo=FALSE}
+ucb %>% group_by(sex=applicant.gender) %>% 
+         summarise(success_rate = sum(admit)/sum(applications)) 
+```
+
+Simple model confirms the discrimination. 
+
+```{r}
+m8.1 =  brm(admit|trials(applications) ~ applicant.gender,
+            family = binomial(),
+            data = ucb,
+            seed = 123,
+            file = "models/m8.1")
+
+m8.1 %>% conditional_effects(effects = "applicant.gender")
+```
+
+But success rate is department-dependent and some departments are not popular among females (A and B are popular among males but not females). This means that we should adjust for "department".
+
+```{r}
+ucb %>% 
+  group_by(dept, applicant.gender) %>% 
+  summarise(success_rate = sum(admit)/sum(applications),
+            applications = applications) %>% 
+  ggplot(aes(dept, success_rate, color = applicant.gender, size = applications))+
+  geom_point(alpha = 0.5)+
+  scale_color_manual(values = c("red", "blue"))
+```
+
+Males more often apply to A and B and females mostly to C-F
+
+```{r}
+ucb %>% 
+  ggplot(aes(x = applicant.gender,
+             y = applications, 
+             fill = dept))+
+  geom_bar(position = "fill", stat = "identity")+
+  scale_fill_manual(values = c("cyan1", "cyan3", "darkorange1", "darkorange2", "darkorange3", "darkorange4"))
+```
+
+This means that 'department' is confounding our results.
+
+```{r, fig.width=7}
+dag = dagitty('
+dag {
+"sex of applicant" [exposure,pos="-1.585,1.184"]
+"success rate" [outcome,pos="0.833,1.155"]
+department [pos="-0.357,1.620"]
+"sex of applicant" -> "success rate"
+department -> "sex of applicant"
+department -> "success rate"
+}
+')
+
+dag %>% 
+  ggdag_classic(size = 3.5)+
+  theme_void()
+```
+
+But the question is how should we specify "dept" in our model?
+- additive model with adjusting to department
+- interaction model 'applicant.gender'*'dept'
+- hierarchical model with free intercept
+- hierarchical model with free intercept and slope
+
+Let's run these models
+
+## Additive specification
+
+```{r}
+m7.additive = brm(admit|trials(applications) ~ applicant.gender + dept,
+            family = binomial(),
+            data = ucb,
+            seed = 123,
+            file = "models/m7.additive")
+```
+
+
+Effect: no discrimination in all departments
+
+```{r}
+A = plot(conditional_effects(m7.additive, effects = "dept:applicant.gender"), ask = F)[[1]] + ggtitle("Additive")
+A
+```
+
+
+# Benefits of using interaction model
+
+```{r}
+m7.interaction = brm(admit|trials(applications) ~ dept:applicant.gender,
+            family = binomial(),
+            data = ucb,
+            seed = 123,
+            file = "models/m7.interaction")
+```
+
+
+Opposite effect: males discriminated in department A
+
+```{r}
+B = plot(conditional_effects(m7.interaction, effects = "dept:applicant.gender"), ask = F)[[1]] + ggtitle("Interaction")
+
+B
+```
+
+
+## Hierarhical model with free intercepts
+
+```{r}
+m7.hierarhical_intercept = brm(admit|trials(applications) ~ applicant.gender + (1 | dept),
+            family = binomial(),
+            data = ucb,
+            seed = 123,
+            file = "models/m7.hierarhical_intercept")
+```
+
+
+Effect as expected, no difference between genders but success rates vary between departments
+
+"re_formula()" argument must specified as "NULL" when making hierarchical-level predictions
+
+Hierarhiliste mudelite puhul käib ennustuste tegemine sõltuvalt sellest, kas ennustame uusi klastreid või vanu. Uute puhul läheb re_formula = NULL ehk see ennustab nii, et toimub averaging over distribution of varying effects (arvutuses võetakse arvesse varieeruvate efektide jaotus - usalduspiirid laiemad).
+
+```{r, fig.height=5}
+conditions = ucb %>% make_conditions(vars = c("dept"))
+
+C = plot(conditional_effects(m7.hierarhical_intercept, 
+                             conditions = conditions, 
+                             method = "fitted", 
+                             re_formula = NULL), 
+                             ask = F)[[1]]+ ggtitle("Hierarchical free intercept")
+
+C
+```
+
+
+## Hierarchical model with free intercept and free slope
+
+```{r}
+m7.hierarhical_free_slopes = brm(admit|trials(applications) ~ applicant.gender + (applicant.gender | dept),
+            family = binomial(),
+            data = ucb,
+            seed = 123,
+            file = "models/m7.hierarhical_free_slopes")
+```
+
+
+Again the same: females more successful on department A
+
+```{r, fig.height=5}
+conditions = ucb %>% make_conditions(vars = c("dept"))
+
+D = plot(conditional_effects(m7.hierarhical_free_slopes, conditions = conditions, re_formula = NULL), ask = F)[[1]] + ggtitle("Hierarchical free slopes")
+
+D
+```
+
+
+# Comparing models
+
+```{r, warning = F}
+l1 = loo(m7.additive)
+l2 = loo(m7.interaction)
+l3 = loo(m7.hierarhical_intercept)
+l4 = loo(m7.hierarhical_free_slopes)
+
+loo_compare(l1, l2, l3, l4)
+```
+
+
+# Making predictions from multi-level models
+
+Data
+
+```{r}
+set.seed(123)
+
+all_HF_data = read_csv("HF_data.csv")
+
+#let's make the data smaller
+HF_data = all_HF_data %>%
+  filter(therapy_phase_II > 0) %>% 
+  dplyr::select(county, treatment_method, therapy_phase_II) %>% 
+  rename(therapy = therapy_phase_II)
+
+HF_data
+```
+
+Model
+
+```{r}
+HFmodel = brm(therapy ~ treatment_method + (treatment_method | county),
+            family = lognormal(),
+            data = HF_data,
+            seed = 123,
+            file = "models/HFmodel")
+```
+
+
+
+## Calculating global grand mean
+
+```{r}
+HFmodel %>% conditional_effects(effects = "treatment_method",
+                                          re_formula = NA)
+```
+
+```{r}
+newdata1 = expand_grid(treatment_method = c("conservative", "operative"))
+
+prediction1 = HFmodel %>% epred_draws(newdata = newdata1,
+                        re_formula = NA,
+                        value = "therapy")
+
+median_hdi(prediction1)
+
+prediction1 %>% 
+  ggplot(aes(x = therapy, y = "Whole country", color = treatment_method, fill = treatment_method)) +
+  stat_halfeye(alpha = 0.5)
+```
+
+Effect size
+
+```{r}
+es = prediction1 %>% 
+  pivot_wider(id = .draw, names_from = treatment_method, values_from = therapy) %>% 
+  mutate(difference = operative-conservative)
+
+es %>% 
+  select(difference) %>% 
+  median_hdi()
+
+es %>% 
+  ggplot(aes(x = difference, y = "Effect size")) +
+  stat_halfeye()
+```
+
+
+## Conditional effect for an existing level
+
+Prediction
+
+```{r}
+newdata2 = expand_grid(treatment_method = c("conservative", "operative"),
+                       county = "tartu")
+
+prediction2 = HFmodel %>% epred_draws(newdata = newdata2,
+                        re_formula = NULL,
+                        value = "therapy")
+
+median_hdi(prediction2)
+
+prediction2 %>% 
+  ggplot(aes(x = therapy, y = "Tartu", color = treatment_method, fill = treatment_method)) +
+  stat_halfeye(alpha = 0.5)
+```
+
+
+## Estimating individual-level estimates for an existing level
+
+```{r}
+newdata2 = expand_grid(treatment_method = c("conservative", "operative"),
+                       county = "tartu")
+
+prediction3 = HFmodel %>% predicted_draws(newdata = newdata2,
+                        re_formula = NULL,
+                        value = "therapy")
+
+set.seed(123)
+prediction3 %>% 
+  sample_n(size = 5)
+
+median_hdi(prediction3)
+
+prediction3 %>% 
+  sample_n(size = 10) %>% 
+  ggplot(aes(x = therapy, y = "Individual patients\nin Tartu", color = treatment_method, fill = treatment_method)) +
+  geom_jitter(alpha = 0.5)
+```
+
+
+## Conditional effects for a single hypothetical group
+
+First, let's predict a new county using the distribution of variation of existing counties
+
+```{r}
+newdata3 = expand_grid(treatment_method = c("conservative", "operative"),
+                       county = "New county")
+
+prediction4 = HFmodel %>% epred_draws(newdata = newdata3,
+                        re_formula = NULL,
+                        allow_new_levels = TRUE,
+                        sample_new_levels = "uncertainty",
+                        value = "therapy")
+
+median_hdi(prediction4)
+
+prediction4 %>% 
+  ggplot(aes(x = therapy, y = "New county", color = treatment_method, fill = treatment_method)) +
+  stat_halfeye(alpha = 0.5)
+```
+
+
+Second, let's predict a new county using randomly one of the old counties
+
+```{r}
+newdata3 = expand_grid(treatment_method = c("conservative", "operative"),
+                       county = "New county")
+
+prediction5 = HFmodel %>% epred_draws(newdata = newdata3,
+                        re_formula = NULL,
+                        allow_new_levels = TRUE,
+                        sample_new_levels = "old_levels",
+                        value = "therapy")
+
+median_hdi(prediction5)
+
+prediction5 %>% 
+  ggplot(aes(x = therapy, y = "New county", color = treatment_method, fill = treatment_method)) +
+  stat_halfeye(alpha = 0.5)
+```
+
+Third, let's predict a new county assuming that the variation of counties is normally distributed
+
+```{r}
+newdata3 = expand_grid(treatment_method = c("conservative", "operative"),
+                       county = "New county")
+
+prediction6 = HFmodel %>% epred_draws(newdata = newdata3,
+                        re_formula = NULL,
+                        allow_new_levels = TRUE,
+                        sample_new_levels = "gaussian",
+                        value = "therapy")
+
+median_hdi(prediction6)
+
+prediction6 %>% 
+  ggplot(aes(x = therapy, y = "New county", color = treatment_method, fill = treatment_method)) +
+  stat_halfeye(alpha = 0.5)+
+  xlim(0, 30)
+```
+
+# TASk
+
+Try to check patient's ages by sex and by county using multi-level modelling
+
+```{r}
+set.seed(123)
+
+all_HF_data = read_csv("HF_data.csv")
+
+#let's make the data smaller
+HF_data2 = all_HF_data %>%
+  dplyr::select(county, sex, age)
+
+HF_data2
+```

@@ -1,0 +1,102 @@
+---
+title: "Your opinions on hippos and elephants running speed"
+author: "Pärt Prommik & Ülo Maiväli"
+date: '2022-23-02'
+output:
+  html_document:
+---
+
+# Study question
+
+What is the probability that you were correct on hippos and elephants running speed (hippos were faster)?
+
+Tasks:
+
+1) Define a reasonable prior.
+
+2) Calculate the probability.
+
+
+# Preparation
+
+- Clear workspace
+
+- Be sure that correct project is opened
+
+- Install necessary packages
+
+```{r}
+install.packages()
+```
+
+- Define knitr  settings
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.width = 3, fig.height = 2)
+```
+
+- make a folder "models" into your project folder
+
+# Load necessary packages
+
+```{r}
+library(tidyverse)
+library(brms)
+library(patchwork)
+library(see)
+library(bayestestR)
+options(mc.cores = parallel::detectCores()) #sets your system to use multiple cores simultaneously while fitting models 
+```
+
+# Ingredients we need for modelling
+
+## Prior for the proportion that hippos were faster
+
+Define a reasonable prior
+
+```{r}
+#DEFINE YOUR BELIEF
+our_belief = 0.1 #define mean: what proportion like cats (reference level of our Y-variable)
+
+#let's define few standard deviation values for for the mean in log-odds scale (I know, this is not intuitive at first)
+sd1 = 0.1 
+sd2 = 0.4
+sd3 = 0.8
+sd4 = 2.5
+
+#PLOT CODE (no need to edit)
+prior_data = bind_rows(
+  tibble(log_odds = rnorm(1000, logit_scaled(our_belief), sd1), prior = str_c("A: mean = ", round(logit_scaled(our_belief), digits = 2), ", sd = ", sd1)),
+  tibble(log_odds = rnorm(1000, logit_scaled(our_belief), sd2), prior = str_c("B: mean = ", round(logit_scaled(our_belief), digits = 2), ", sd = ", sd2)),
+  tibble(log_odds = rnorm(1000, logit_scaled(our_belief), sd3), prior = str_c("C: mean = ", round(logit_scaled(our_belief), digits = 2), ", sd = ", sd3)),
+  tibble(log_odds = rnorm(1000, logit_scaled(our_belief), sd4), prior = str_c("D: mean = ", round(logit_scaled(our_belief), digits = 2), ", sd = ", sd4))) %>% mutate(probability = inv_logit_scaled(log_odds), prior = as_factor(prior))
+
+prior_data %>% ggplot(aes(x = probability))+
+  geom_density(fill = "grey80")+
+  scale_x_continuous(limits = c(0,1), labels = c(0, "", 0.5, "", 1))+
+  theme_classic()+
+  facet_wrap(~prior, nrow = 2, ncol = 2, scales = "free")
+```
+
+
+## We need data
+
+Your answers
+
+```{r}
+data = tibble(answer = c("Hippos", "Hippos", "Hippos", "Hippos", "Hippos", "Elephants", "Elephants", "Elephants", "Elephants", "Elephants", "Elephants", "Elephants", "Elephants", "Elephants", "Elephants")) %>% 
+  mutate(answer = as_factor(answer), answer = fct_relevel(answer, "Elephants", "Hippos"))
+```
+
+
+View the data
+
+```{r}
+data
+```
+
+How factor levels are ordered
+
+```{r}
+levels(data$answer)
+```

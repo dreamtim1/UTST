@@ -1,0 +1,18 @@
+---
+title: "Homework for lecture 3: President's heights"
+output: html_notebook
+---
+
+Please use our practical session 3's code for this homework.
+
+We give you the heights of the last 10 presidents of the United States
+
+The study question is this: are the presidents of the USA on average taller than the male population? For this difference in heights to be meaningful, it should exceed 2 cm (we think). The causal hypothesis is that taller people have better chances in life because they are perceived as more capable and/or more trustworthy. So the hypothesis to test is, whether the presidents are at least cm taller than the population as a whole.
+
+```{r}
+presidents <- data.frame(height= c(182, 183, 177, 185, 188, 188, 182, 185, 191, 182))
+```
+
+Please use these data and meaningful priors (google the average heights and standard deviation of heights in the States). Specifically, answer this question: what is the probability that the president's mean height is more than 2 centimeters higher than in the general population?
+
+Please 

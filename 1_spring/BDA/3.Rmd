@@ -1,0 +1,509 @@
+---
+title: "Modelling normal distribution"
+author: "Pärt Prommik & Ülo Maiväli"
+date: '2022-23-02'
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+subtitle: Simple intercept-only models
+editor_options:
+  markdown:
+    wrap: 72
+---
+
+
+# Preparation
+
+- Clear workspace
+
+- Be sure that correct project is opened
+
+- Install necessary packages
+
+```{r}
+install.packages("patchwork", "googlesheets4", "see", "bayestestR")
+```
+
+- Define knitr  settings
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.width = 3, fig.height = 2)
+```
+
+- make a folder "models" into your project folder
+
+# Load necessary packages
+
+```{r}
+library(tidyverse)
+library(brms)
+library(patchwork)
+library(see)
+library(bayestestR)
+options(mc.cores = parallel::detectCores()) #sets your system to use multiple cores simultaneously for fitting models 
+```
+
+# Ingredients we need for modelling
+
+## Prior for typing speed (mean typed words per minute)
+
+Let's save your prior belief
+
+```{r}
+n = 100
+priors = bind_rows(
+  tibble(words_per_minute = rnorm(n, , ), response = rep("a")),
+  tibble(words_per_minute = rnorm(n, , ), response = rep("b")),
+  tibble(words_per_minute = rnorm(n, , ), response = rep("c")),
+  tibble(words_per_minute = rnorm(n, , ), response = rep("d")),
+  tibble(words_per_minute = rnorm(n, , ), response = rep("e")),
+  tibble(words_per_minute = rnorm(n, , ), response = rep("f")),
+  tibble(words_per_minute = rnorm(n, , ), response = rep("g")),
+  tibble(words_per_minute = rnorm(n, , ), response = rep("h")),
+  tibble(words_per_minute = rnorm(n, , ), response = rep("i")),
+  tibble(words_per_minute = rnorm(n, , ), response = rep("j")),
+  tibble(words_per_minute = rnorm(n, , ), response = rep("k")),
+  tibble(words_per_minute = rnorm(n, , ), response = rep("l")),
+  tibble(words_per_minute = rnorm(n, , ), response = rep("m")),
+  tibble(words_per_minute = rnorm(n, , ), response = rep("n"))
+  ) 
+
+priors %>% 
+  ggplot(aes(x = words_per_minute))+
+  geom_density(size = 1)+
+  theme_classic()+
+  facet_wrap(~response)
+```
+
+- let's review your provided priors
+
+```{r}
+priors %>% 
+  group_by(response) %>% 
+  summarise(
+    mean = mean(words_per_minute),
+    sd = sd(words_per_minute)) %>% 
+  arrange(mean)
+```
+
+
+## We need data
+
+words = typed words per minute
+
+```{r}
+data = tibble(words = c(79, 39, 24, 86, 25, 52, 46, 56, 36, 42, 70, 65, 20, 75, 57, 50, 60))
+```
+
+
+View your data
+
+```{r}
+data
+```
+
+
+Calculate mean and SD
+
+```{r}
+data %>%
+  summarise(mean = mean(words),
+            sd = sd(words))
+```
+
+Let's make a density plot
+
+It includes only 17 observations, thus it is quite normal, flat (wide) distribution.
+
+```{r}
+plot1 = data %>% 
+  ggplot(aes(x = words))+
+  geom_density()+
+  theme_classic()
+
+plot1
+```
+
+# Modelling
+
+## Prior only model
+
+First, let's define our prior
+
+```{r}
+possible_prior_options = get_prior(
+  formula = words ~ 1,
+  data = data,
+  family = gaussian())
+
+possible_prior_options %>% as_tibble()
+```
+
+Second, let's define a prior
+
+-- Let's visualise our prior (prior belief, domain knowledge)
+
+```{r}
+ggplot(data = NULL, aes(rnorm(100, 100, 40)))+
+geom_density()
+```
+
+
+- let's put this into brms code
+
+```{r}
+our_prior = c(
+  prior(normal(100,40), class = Intercept),
+  prior(normal(25,5), class = sigma))
+
+our_prior
+```
+
+Third, run prior-only model
+
+```{r}
+m0 = brm(formula = words ~ 1, #defines formula
+         data = data, #defines data
+         family = gaussian(), #defines data type: distribution family that should match our Y-variable distribution 
+         file = "models/m0", #saves your model as a file
+         seed = 123, #when specified, our computers will give exactly the same results
+         prior = our_prior,
+         sample_prior = "only")
+
+#model code without comments
+
+m0 = brm(formula = words ~ 1, 
+         data = data, 
+         family = gaussian(), 
+         file = "models/m0", 
+         seed = 123, 
+         prior = our_prior,
+         sample_prior = "only")
+```
+
+This is what prior thinks about mean typing speed in population
+
+```{r}
+m0 %>% as_draws_df() %>% 
+  ggplot(aes(b_Intercept))+
+  geom_density()
+```
+
+
+Let's now run the model
+
+```{r}
+m1 = brm(formula = words ~ 1, #defines formula
+         data = data, #defines data
+         family = gaussian(), #defines data type: distribution family that should match our Y-variable distribution 
+         file = "models/m1", #saves your model as a file
+         seed = 123, #when specified, our computers will give exactly the same results
+         prior = our_prior, #prior we use for modelling
+         sample_prior = "yes" #includes prior distributions into posterior
+         )
+
+#the previous code without comments
+
+m1 = brm(formula = words ~ 1, 
+         data = data, 
+         family = gaussian(), 
+         file = "models/m1", 
+         seed = 123,
+         prior = our_prior, 
+         sample_prior = "yes")
+```
+
+
+Model summary
+
+```{r}
+m1
+```
+
+Let's review the summary in Powerpoint
+
+
+## Let's calculate the model's coefficents manually
+
+Model posterior includes all possible parameter values
+
+```{r}
+posterior1 = m1 %>% as_draws_df()
+
+posterior1
+```
+
+Let's calculate b_Intercept estimates manually
+
+```{r}
+posterior_summary1 = posterior1 %>% summarise(mean = mean(b_Intercept),
+                         lower_CI = quantile(b_Intercept, probs = 0.025),
+                         upper_CI = quantile(b_Intercept, probs = 0.975))
+
+posterior_summary1 %>% mutate(across(where(is.numeric), round, 2))
+```
+
+Let's visualise the distribution of b_Intercept 
+
+```{r}
+posterior1 %>% 
+  ggplot(aes(b_Intercept))+
+  geom_density(fill = "white")+
+  #let's add lines for the mean and upper and lower credible interval
+  geom_vline(xintercept = mean(posterior1$b_Intercept), color = "blue")+
+  geom_vline(xintercept = quantile(posterior1$b_Intercept, probs = 0.025), color = "lightblue")+
+  geom_vline(xintercept = quantile(posterior1$b_Intercept, probs = 0.975), color = "lightblue")
+```
+
+The same can be done for the standard deviation (sigma)
+
+Let's calculate b_Intercept estimates manually
+
+```{r}
+posterior_summary2 = posterior1 %>% summarise(mean_sigma = mean(sigma),
+                         lower_CI = quantile(sigma, probs = 0.025),
+                         upper_CI = quantile(sigma, probs = 0.975))
+
+posterior_summary2 %>% mutate(across(where(is.numeric), round, 2))
+```
+
+Let's visualise the distribution of sigma
+
+```{r}
+posterior1 %>% 
+  ggplot(aes(sigma))+
+  geom_density(fill = "white")+
+  #let's add lines for the mean and upper and lower credible interval
+  geom_vline(xintercept = mean(posterior1$sigma), color = "blue")+
+  geom_vline(xintercept = quantile(posterior1$sigma, probs = 0.025), color = "lightblue")+
+  geom_vline(xintercept = quantile(posterior1$sigma, probs = 0.975), color = "lightblue")
+```
+
+
+
+# Extracting uncertainty 
+
+From summary
+
+```{r}
+m1 
+```
+
+
+Calculating necessary statistics manually
+
+```{r}
+posterior1 = m1 %>% as_draws_df()
+
+mean(posterior1$b_Intercept)
+
+quantile(posterior1$b_Intercept, probs = c(0.025, 0.075))
+```
+
+
+Calculating necessary statistics using 'posterior_summary()' function
+
+```{r}
+summary1 = m1 %>% 
+  posterior_summary() %>% 
+  as_tibble(rownames = "Parameter") %>% 
+  mutate(across(where(is.numeric), round, 2))
+
+summary1 
+```
+
+
+Creating copy-paste values for your article
+
+```{r}
+summary1 %>% 
+  filter(Parameter %in% c("b_Intercept", "sigma")) %>% 
+  select(-Est.Error) %>% 
+  mutate(copy_paste_value = paste0(Estimate, " [95% CI: ", Q2.5, "; ", Q97.5, "]"))
+```
+
+
+Calculating probabilities
+
+Probability for writing more than 1 minute per second
+
+Visualising the proportion
+
+```{r}
+posterior1 %>% 
+  ggplot(aes(b_Intercept))+
+  geom_density(fill = "white")+
+  geom_vline(xintercept = 60, color = "red")
+```
+
+
+Calculating the probability manually
+
+```{r}
+values_over = posterior1 %>%
+  filter(b_Intercept > 60) %>%
+  nrow()
+
+values_over 
+
+probability = values_over/nrow(posterior1)
+
+probability %>% round(digits = 2)
+```
+
+
+Using brms built-in function
+
+```{r}
+hypothesis1 = posterior1 %>%  hypothesis("b_Intercept > 60")
+
+hypothesis1
+```
+
+
+Using other packages
+
+Equal-Tailed Interval (ETI)
+
+```{r}
+eti = hdi(posterior1$b_Intercept, ci = c(0.5, 0.95))
+
+eti
+
+eti_plot = plot(eti)
+eti_plot
+```
+
+Highest density interval
+
+```{r}
+hdi = hdi(posterior1$b_Intercept, ci = c(0.5, 0.95))
+
+hdi
+
+hdi_plot = plot(hdi)
+
+hdi_plot
+```
+
+
+Comparison of ETI and HDI
+
+```{r, fig.height=4, fig.width=5}
+eti_plot/hdi_plot
+```
+
+
+Probability that mean writing speed is between 40 and 50 words per minute
+
+```{r}
+rope = rope(posterior1$b_Intercept, range(40, 50), ci = 1)
+
+rope
+
+plot(rope, rope_color = "red") +
+  scale_fill_material(palette = "light")
+```
+
+# Do you believe our model?
+
+```{r}
+hdi_plot
+```
+
+I don't believe it: 
+1) students are not average typers in the population;
+2) what about the proportion of babies and grannies in general population.
+
+
+# Let's use a better prior
+
+First, let's visualise our prior (prior belief, domain knowledge)
+
+lightblue - old prior
+darkblue - new prior
+red - our data
+purple - old posterior
+
+```{r}
+ggplot()+
+geom_density(data = NULL, aes(rnorm(1000, 100, 40)), color = "lightblue", size = 1)+
+geom_density(data = posterior1, aes(b_Intercept), color = "purple", size = 1)+
+  geom_density(data = data, aes(words), color = "red", size = 1)+
+geom_density(data = NULL, aes(rnorm(1000, 30, 5)), color = "darkblue", size = 1)+
+  theme_classic()
+```
+
+Define the better prior for brms
+
+```{r}
+better_prior = c(
+  prior(normal(30,5), class = Intercept),
+  prior(normal(15,5), class = sigma))
+
+better_prior
+```
+
+
+Third, run prior-only model
+
+```{r}
+m2 = brm(formula = words ~ 1, 
+         data = data, 
+         family = gaussian(), 
+         file = "models/m2", 
+         seed = 123, 
+         prior = better_prior,
+         sample_prior = "only")
+```
+
+
+This is what prior thinks about mean typing speed in population
+
+```{r}
+m2 %>% as_draws_df() %>% 
+  ggplot(aes(b_Intercept))+
+  geom_density()
+```
+
+
+Let's now run the previous model with our data
+
+```{r}
+m3 = brm(formula = words ~ 1, 
+         data = data, 
+         family = gaussian(), 
+         file = "models/m3", 
+         seed = 123,
+         prior = better_prior,
+         sample_prior = "yes")
+```
+
+
+Let's compare two models
+
+```{r}
+m1
+
+m3
+```
+
+
+```{r}
+summary1 = m1 %>% 
+  posterior_summary() %>% 
+  as_tibble(rownames = "Parameter") %>% 
+  mutate(across(where(is.numeric), round, 2), model = "old prior")
+
+summary3 = m3 %>% 
+  posterior_summary() %>% 
+  as_tibble(rownames = "Parameter") %>% 
+  mutate(across(where(is.numeric), round, 2), model = "better prior")
+
+
+bind_rows(
+  summary1,
+  summary3) %>% 
+  filter(Parameter == "b_Intercept")
+```

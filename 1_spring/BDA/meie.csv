@@ -1,0 +1,68 @@
+local;journal;cites;IF;year;n_auth;foreign_collaboration
+no;pnas;56;11.2;2022;16;yes
+no;viruses;2;5.04;2021;28;yes
+yes;antimicrobial agents chemotherapy;0;5.2;2021;5;yes
+yes;J investigative dermatology;0;8.5;2021;9;no
+no;viruses;2;5.04;2021;10;yes
+no;mol cell;3;18;2021;17;yes
+no;viruses;1;5.04;2021;8;yes
+no;pnas;13;11.2;2021;7;yes
+yes;frontiers microbiol;2;5.6;2021;9;no
+no;mol cell;13;18;2021;10;yes
+yes;ACS omega;13;3.5;2020;7;no
+no;frontiers microbiol;3;5.6;2020;6;yes
+no;viruses;16;5.04;2020;27;yes
+yes;applied microbiol biotech;2;4.8;2020;8;no
+yes;microorganisms;1;3.9;2020;10;no
+no;viruses;52;5.04;2020;19;yes
+no;pnas;29;11.2;2020;14;yes
+no;nature comm;60;14.9;2020;9;yes
+yes;res microbiol;2;4;2020;3;no
+yes;sci reports;3;4.4;2019;9;yes
+no;frontiers immun;30;5.6;2019;25;yes
+no;viruses;37;5.04;2019;15;yes
+no;j bac;7;3.5;2019;5;no
+no;pharmaceutics;9;6.1;2019;9;yes
+no;JMB;41;5.5;2019;13;yes
+yes;int j pharmaceutics;5;5.9;2019;7;no
+yes;science signaling;7;8.2;2019;2;no
+yes;MBIO;4;7.9;2019;4;no
+no;viruses;39;5.04;2019;21;yes
+yes;plos one;10;3.2;2019;7;no
+yes;biochimie;18;4.1;2019;6;no
+no;BMC infectious diseases;8;3.0;2019;8;no
+no;plos computational biol;16;4.5;2018;5;no
+no;eur J pharamaceutical sciences;37;4.4;2018;7;yes
+no;viruses;4;5.04;2018;10;yes
+no;antiviral res;32;6;2018;35;yes
+no;MBIO;114;7.9;2018;12;yes
+no;JBC;27;5.2;2018;7;yes
+no;NAR;32;17;2018;12;yes
+no;mol pharmaceutics;27;5;2017;12;yes
+no;mol cell;60;18;2017;18;yes
+yes;sci reports;48;4.4;2017;4;no
+no;molecular therapy nucleic acids;29;8.9;2017;5;no
+yes;pnas;29;11.2;2017;8;no
+yes;antimicrobial agents chemotherapy;34;5.2;2017;10;yes
+yes;sci reports;16;4.4;2017;11;yes
+yes;rna biol;21;5.35;2017;10;no
+no;j proteome res;10;4.5;2016;5;no
+yes;sci reports;6;4.4;2016;10;no
+yes;sci reports;24;4.4;2016;3;no
+yes;antimicrobial agents chemotherapy;32;5.2;2016;8;no
+no;sci reports;13;4.4;2016;7;yes
+no;JMB;11;5.5;2016;5;yes
+yes;sci reports;33;4.4;2016;2;no
+yes;sci reports;13;4.4;2016;4;no
+no;sci reports;20;4.4;2016;9;yes
+yes;sci reports;31;4.4;2015;9;no
+no;proteome;21;4.5;2015;9;no
+yes;infection and immunity;25;3.25;2015;6;no
+yes;sci reports;8;4.4;2015;5;no
+no;pnas;96;11.2;2014;9;yes
+no;cell reports;25;9.4;2014;11;yes
+no;NAR;60;17;2014;9;yes
+yes;plos one;101;3.2;2014;7;yes
+no;pnas;70;11.2;2014;12;yes
+no;biochimie;39;4.1;2014;7;yes
+yes;bmc evolutionary biol;6;3.3;2014;8;yes

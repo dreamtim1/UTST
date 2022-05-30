@@ -1,0 +1,141 @@
+---
+title: "Ylo's lecture 3 code"
+output: html_notebook
+---
+
+
+
+```{r}
+library(tidyverse)
+```
+
+Mortality of a disease is 50% and we have 3 patients. How many of them are likely to die? 
+
+We have 2 pieces of data (mortality rate p = 0.5 and N = 3) and a 4-member sample space (0 dead, 1 dead, 2 dead, and 3 dead). 
+
+We start by enumerating all logically possible scenarios (d - dead, a - alive)
+
+ddd
+dad
+dda
+ada
+aad
+aaa
+add
+daa
+
+If P(dead) = 0.5, then by simple counting we get that:
+
+0 dead-1,
+1 dead-3,
+2 dead-3,
+3 dead-1
+
+This is our sample space S={0 deaths, 1 death, 2 deaths, 3 deaths}.
+
+Thus we have 1 + 3 + 3 + 1 = 8 possible futures that divide between the 4 hypotheses. This means that for each member of the parameter space we know the probability of its realization (P(1 death) = 3/8, etc.). It is this knowledge we now turn into a likelihood function.
+
+```{r}
+#Sample space
+x <- seq(from = 0, to = 3)
+# Likelihoods for each x value, or P(deaths I x)
+y <- c(1, 3, 3, 1)
+
+ggplot(data = NULL, aes(x, y)) + 
+  geom_col() + 
+  xlab("hypothetical nr of deaths") + 
+  ylab("plausibility") + 
+  theme_bw()
+```
+
+dbinom() takes in the sample space (x), size (the number of tries) & probability of success, and outputs the probability mass function
+
+```{r}
+y <- dbinom(x, size=3, prob=0.5)
+
+ggplot(data = NULL, aes(x, y)) +
+  geom_col() + 
+  xlab("hypothetical nr of deaths") + 
+  ylab("probability") + theme_bw()
+```
+
+
+
+
+rbinom generates random experiments from biomial distribution. We generate 5 independent experiments, in each 3 patients are dying with 50% probability.
+
+```{r}
+rbinom(n=50, size = 3, prob = 0.5)
+```
+
+distribution function - we input quantiles (x-values) and get probabilities
+```{r}
+pbinom(q=c(3, 7), size = 10, prob = 0.5)
+```
+
+17% of the probability mass is below 3 death events ("successes") out of 10 tries (patients); 
+94% of the mass is below 7 events out of 10 tries
+
+quantile function qnorm() takes probabilities and outputs quantiles (x-values).
+```{r}
+qbinom(p=c(0.1, 0.9), size = 10, prob = 0.5)
+```
+
+
+
+How many dead when we have 9 patients and mortality rate is 67 percent?
+```{r}
+x <- seq(from = 0, to = 9) 
+y <- dbinom(x, 9, 0.67)
+ggplot(data = NULL, aes(x, y)) + 
+  geom_point() +
+  geom_line() +
+  xlab("hypothetical nr of deaths") + 
+  ylab("probability") 
+```
+
+
+Next we add to the likelihood a flat prior and use the Bayes theorem.
+
+```{r}
+x <- seq(from = 0, to = 9) #parameter space: nr of deaths 
+prior <- rep(1, 10) # flat prior
+# Compute likelihood at each value in grid
+likelihood <- dbinom(x, size = 9, prob = 0.67)
+
+unstd.posterior <- likelihood * prior
+# Normalize the posterior, so that it sums to 1
+posterior <- unstd.posterior/sum(unstd.posterior)
+
+ggplot(data = NULL, aes(x, posterior)) + geom_point() + geom_line() + xlab("hypothetical nr of deaths") + ylab("posterior probability") + theme_bw()
+```
+
+
+Now its time for a shift of perspective. We want to estimate the true mortality rate.
+
++ data: 6 dead out of 9 patients.
+
++ parameter to estimate: the mortality rate (p). 
+
++ sample space: real numbers between 0 and 1.
+
+We can still use binomial likelihood. dbinom() has 3 arguments,
+nr of events, nr of tries and probability of events. Again, we have
+two of them as data and one as the parameter whose value we want to estimate. We use the flat prior again. As there are Inf number of members in Ω, we cheat a little and calculate for the grid of 20 evenly spaced parameter values.
+
+```{r}
+# grid: mortality at 20 evenly spaced probabilities from 0 to 1
+x <- seq(from = 0 , to = 1, length.out = 20) # prior
+prior <- rep(1 , 20)
+
+likelihood <- dbinom(6, size = 9 , prob = x)
+posterior <- likelihood * prior / sum(likelihood * prior) 
+
+a <- tibble(x=rep(x=x, 2),
+y= c(likelihood, posterior),
+legend= rep(c("likelihood", "posterior"), each=20)) 
+
+ggplot(data=a) +
+  geom_line(aes(x, y, color=legend))
+
+```

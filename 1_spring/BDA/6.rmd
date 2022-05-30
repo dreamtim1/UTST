@@ -1,0 +1,603 @@
+---
+title: "Causal modelling"
+author: "Pärt Prommik & Ülo Maiväli"
+date: '2022-23-02'
+output:
+  html_document:
+---
+
+
+# Preparation
+
+- Clear workspace
+
+- Be sure that correct project is opened
+
+- Install necessary packages
+
+```{r}
+install.packages(c("ggdag", "dagitty", "simglm"))
+```
+
+- Define knitr  settings
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.width = 3, fig.height = 2)
+```
+
+- make a folder "models" into your project folder
+
+# Load necessary packages
+
+```{r}
+library(tidyverse)
+library(brms)
+library(patchwork)
+library(ggdag)
+library(dagitty)
+library(simglm)
+options(mc.cores = parallel::detectCores()) #sets your system to use multiple cores simultaneously while fitting models 
+```
+
+
+# Simulate data
+
+```{r, fig.width=6, fig.height=4}
+set.seed(123)
+
+#simultaes data for the correct model
+sim_arguments <- list(
+  formula = y ~ 1 + work_time + weather,
+  fixed = list(work_time = list(var_type = 'continuous', mean = 60, sd = 10),
+               weather = list(var_type = 'factor', levels = c('rainy', 'sunny'))),
+  error = list(variance = 12),
+  sample_size = 50,
+  reg_weights = c(0, 0.17, 3))
+
+data = simulate_fixed(data = NULL, sim_arguments) %>%
+  simulate_error(sim_arguments) %>%
+  generate_response(sim_arguments)
+
+#function for adding correlating variables
+f <- function(x,rho) {
+  orth = lm(runif(length(x))~x)$residuals
+  rho*sd(orth)*x + orth*sd(x)*sqrt(1-rho^2)
+}
+
+#add new predictors
+data = data %>% 
+  #predictors that positively correlate with y
+  mutate(pest_control = round(f(y, 0.75)+3, digits = 0),
+         pesticide_shop_visits = round((f(y, 0.7)+2)/2, digits = 0),
+         profit = f(y, 0.68)*75) %>% 
+  #predictors that negatively correlate with y
+  arrange((y)) %>%
+         mutate(
+         tv_watching = seq(400, 204, -4)) %>% 
+  #prepares nice data for the practical session
+  rename("plant_growth" = y) %>% 
+  select(-X.Intercept., -weather_1, -level1_id, -error, -fixed_outcome, -random_effects) %>% 
+  relocate(plant_growth)
+```
+View data
+
+```{r}
+data
+```
+
+Let's see variable names
+
+```{r}
+names(data)
+```
+
+# TASK 1
+
+**Study question: How daily work time affects daily plant growth?**
+
+Please use the following code on www.dagitty.net. Paste the code in "Model code" section and click "Update DAG". Thereafter define causal relationships between these variables and give me adjustment set for modelling.
+
+```{r}
+
+
+dag {
+bb="-6.679,-5.194,5.5,4.366"
+pest_control [pos="0.040,-1.001"]
+pesticide_shop_visits [pos="3.976,-1.001"]
+plant_growth [outcome,pos="2.762,0.166"]
+profit [pos="-0.208,-2.698"]
+tv_watching [pos="-4.595,1.103"]
+weather [pos="-0.084,1.794"]
+work_time [exposure,pos="-2.775,0.166"]
+work_time -> plant_growth
+}
+
+
+```
+
+
+# Let's model different scenarios
+
+## Simple, unadjusted model
+
+EDA
+
+```{r}
+data %>% 
+  ggplot(aes(plant_growth, work_time))+
+  geom_point()+
+  geom_smooth(method = "lm")
+```
+
+Model
+
+```{r}
+m6.1 = brm(formula = plant_growth ~ work_time, 
+         data = data, 
+         family = gaussian(), 
+         file = "m6.1", 
+         seed = 123,
+         iter = 500)
+```
+
+Conditional effects
+
+```{r}
+m6.1 %>% conditional_effects(effects = "work_time")
+```
+
+
+Model summary
+
+```{r}
+m6.1
+```
+
+
+b-coefficent and credible intervals
+
+```{r}
+effect6.1 = m6.1 %>% 
+  as_draws_df() %>% 
+  mutate(b_work_time = b_work_time*60) %>% 
+  posterior_summary() %>% 
+  as_tibble(rownames = "model") %>% 
+  filter(model == "b_work_time") %>% 
+  mutate(model = "~ work_time") %>% 
+  select(-Est.Error) %>% 
+  rename(b_coefficient = Estimate,
+         lower_CI = Q2.5,
+         upper_CI = Q97.5)
+
+effect6.1 %>% 
+  mutate_if(is_numeric, round, 2)
+```
+
+
+## Adjusting for everything
+
+Model
+
+```{r}
+m6.2 = brm(formula = plant_growth ~ work_time + weather + pest_control + pesticide_shop_visits + profit + tv_watching, 
+         data = data, 
+         family = gaussian(), 
+         file = "m6.2", 
+         seed = 123,
+         iter = 500)
+```
+
+Conditional effects
+
+```{r}
+m6.2 %>% conditional_effects(effects = "work_time")
+```
+
+
+Model summary
+
+```{r}
+m6.2
+```
+
+
+Comparison
+
+```{r}
+effect6.2 = m6.2 %>% 
+  as_draws_df() %>% 
+  mutate(b_work_time = b_work_time*60) %>% 
+  posterior_summary() %>% 
+  as_tibble(rownames = "model") %>% 
+  filter(model == "b_work_time") %>% 
+  mutate(model = "~ ADJUSTING TO EVERYTHING") %>% 
+  select(-Est.Error) %>% 
+  rename(b_coefficient = Estimate,
+         lower_CI = Q2.5,
+         upper_CI = Q97.5)
+
+bind_rows(
+  effect6.1,
+  effect6.2
+  ) %>% 
+  mutate_if(is_numeric, round, 2)
+```
+
+## Drawing a DAG for modelling
+
+```{r, fig.height=4, fig.width=7}
+dag = dagitty('
+dag {
+bb="-6.679,-5.194,5.5,4.366"
+pest_control [pos="0.040,-1.001"]
+pesticide_shop_visits [pos="3.976,-1.001"]
+plant_growth [outcome,pos="2.762,0.166"]
+profit [pos="-0.208,-2.698"]
+tv_watching [pos="-4.595,1.103"]
+weather [pos="-0.084,1.794"]
+work_time [exposure,pos="-2.775,0.166"]
+pest_control -> pesticide_shop_visits
+pest_control -> plant_growth
+plant_growth -> profit
+tv_watching -> work_time
+weather -> plant_growth
+weather -> work_time
+work_time -> pest_control
+work_time -> plant_growth
+work_time -> profit
+}')
+
+dag %>% 
+  ggdag_classic(size = 3.5)+
+  theme_void()
+```
+
+
+Adjustment set for modelling
+
+```{r}
+adjustmentSets(dag, effect = "total")
+```
+
+## DAG model
+
+Model
+
+```{r}
+m6.3 = brm(formula = plant_growth ~ work_time + weather, 
+         data = data, 
+         family = gaussian(), 
+         file = "models/m6.3", 
+         seed = 123,
+         iter = 500)
+```
+
+Conditional effects
+
+```{r}
+m6.3 %>% conditional_effects(effects = "work_time")
+```
+
+Comparison
+
+```{r}
+effect6.3 = m6.3 %>% 
+  as_draws_df() %>% 
+  mutate(b_work_time = b_work_time*60) %>% 
+  posterior_summary() %>% 
+  as_tibble(rownames = "model") %>% 
+  filter(model == "b_work_time") %>% 
+  mutate(model = "~ work_time + weather") %>% 
+  select(-Est.Error) %>% 
+  rename(b_coefficient = Estimate,
+         lower_CI = Q2.5,
+         upper_CI = Q97.5)
+
+bind_rows(
+  effect6.1,
+  effect6.2,
+  effect6.3
+) %>% 
+  mutate_if(is_numeric, round, 2)
+```
+
+## Adjusting to mediator
+
+Model
+
+```{r}
+m6.4 = brm(formula = plant_growth ~ work_time + pest_control, 
+         data = data, 
+         family = gaussian(), 
+         file = "models/m6.4", 
+         seed = 123,
+         iter = 500)
+```
+
+Conditional effects
+
+```{r}
+m6.4 %>% conditional_effects(effects = "work_time")
+```
+
+
+Model summary
+
+```{r}
+m6.4
+```
+
+Comparison
+
+```{r}
+effect6.4 = m6.4 %>% 
+  as_draws_df() %>% 
+  mutate(b_work_time = b_work_time*60) %>% 
+  posterior_summary() %>% 
+  as_tibble(rownames = "model") %>% 
+  filter(model == "b_work_time") %>% 
+  mutate(model = "~ work_time + weather + pest_control") %>% 
+  select(-Est.Error) %>% 
+  rename(b_coefficient = Estimate,
+         lower_CI = Q2.5,
+         upper_CI = Q97.5)
+
+bind_rows(
+  effect6.1,
+  effect6.2,
+  effect6.3,
+  effect6.4
+) %>% 
+  mutate_if(is_numeric, round, 2)
+```
+
+## Adjusting to a descendant
+
+Model
+
+```{r}
+m6.5 = brm(formula = plant_growth ~ work_time + weather + pesticide_shop_visits, 
+         data = data, 
+         family = gaussian(), 
+         file = "models/m6.5", 
+         seed = 123,
+         iter = 500)
+```
+
+Conditional effects
+
+```{r}
+m6.5 %>% conditional_effects(effects = "work_time")
+```
+
+
+Model summary
+
+```{r}
+m6.5
+```
+
+
+Comparison
+
+```{r}
+effect6.5 = m6.5 %>% 
+  as_draws_df() %>% 
+  mutate(b_work_time = b_work_time*60) %>% 
+  posterior_summary() %>% 
+  as_tibble(rownames = "model") %>% 
+  filter(model == "b_work_time") %>% 
+  mutate(model = "~ work_time + weather + pesticide_shop_visits") %>% 
+  select(-Est.Error) %>% 
+  rename(b_coefficient = Estimate,
+         lower_CI = Q2.5,
+         upper_CI = Q97.5)
+
+bind_rows(
+  effect6.1,
+  effect6.2,
+  effect6.3,
+  effect6.4,
+  effect6.5
+) %>% 
+  mutate_if(is_numeric, round, 2)
+```
+
+
+## Adjusting to a collider
+
+Model
+
+```{r}
+m6.6 = brm(formula = plant_growth ~ work_time + weather + profit, 
+         data = data, 
+         family = gaussian(), 
+         file = "models/m6.6", 
+         seed = 123,
+         iter = 500)
+```
+
+Conditional effects
+
+```{r}
+m6.6 %>% conditional_effects(effects = "work_time")
+```
+
+
+Model summary
+
+```{r}
+m6.6
+```
+
+
+Comparison
+
+```{r}
+effect6.6 = m6.6 %>% 
+  as_draws_df() %>% 
+  mutate(b_work_time = b_work_time*60) %>% 
+  posterior_summary() %>% 
+  as_tibble(rownames = "model") %>% 
+  filter(model == "b_work_time") %>% 
+  mutate(model = "~ work_time + weather + profit") %>% 
+  select(-Est.Error) %>% 
+  rename(b_coefficient = Estimate,
+         lower_CI = Q2.5,
+         upper_CI = Q97.5)
+
+bind_rows(
+  effect6.1,
+  effect6.2,
+  effect6.3,
+  effect6.4,
+  effect6.5,
+  effect6.6
+) %>% 
+  mutate_if(is_numeric, round, 2)
+```
+
+## Adjusting to a covariate
+
+Model
+
+```{r}
+m6.7 = brm(formula = plant_growth ~ work_time + weather + tv_watching, 
+         data = data, 
+         family = gaussian(), 
+         file = "models/m6.7", 
+         seed = 123,
+         iter = 500)
+```
+
+Conditional effects
+
+```{r}
+m6.7 %>% conditional_effects(effects = "work_time")
+```
+
+
+Model summary
+
+```{r}
+m6.7
+```
+
+
+Comparison
+
+```{r}
+effect6.7 = m6.7 %>% 
+  as_draws_df() %>% 
+  mutate(b_work_time = b_work_time*60) %>% 
+  posterior_summary() %>% 
+  as_tibble(rownames = "model") %>% 
+  filter(model == "b_work_time") %>% 
+  mutate(model = "~ work_time + weather + tv_watching") %>% 
+  select(-Est.Error) %>% 
+  rename(b_coefficient = Estimate,
+         lower_CI = Q2.5,
+         upper_CI = Q97.5)
+
+bind_rows(
+  effect6.1,
+  effect6.2,
+  effect6.3,
+  effect6.4,
+  effect6.5,
+  effect6.6,
+  effect6.7
+) %>% 
+  mutate_if(is_numeric, round, 2)
+```
+
+
+## Summary plot
+
+```{r, fig.width=6, fig.height=3}
+bind_rows(
+  effect6.1,
+  effect6.2,
+  effect6.3,
+  effect6.4,
+  effect6.5,
+  effect6.6,
+  effect6.7
+) %>% 
+  mutate(row_number = row_number(),
+         model = as_factor(model)) %>% 
+  ggplot(aes(x = b_coefficient, 
+             y = model %>% fct_reorder(desc(row_number)),
+             xmin = lower_CI,
+             xmax = upper_CI))+
+  geom_vline(xintercept = 0, color = "red", linetype = "dotted")+
+  geom_point()+
+  geom_errorbarh(height = 0)+
+  ylab("Model")+
+  xlab("Effect of one hour of working")
+```
+
+
+# TASK 2
+
+Try to use the previous code to answer the following question:
+
+1) How time (year) affects the amount of rehabilitation received in phase II?
+
+
+## Use the following data
+
+```{r}
+set.seed(123)
+
+all_HF_data = read_csv("HF_data.csv")
+
+#let's make the data smaller
+HF_data = all_HF_data %>%
+  group_by(year) %>% 
+  sample_frac(size = 0.1) %>% 
+  filter(therapy_phase_II > 0) %>% 
+  select(year, age, therapy_phase_I, therapy_phase_II, comorbidity_score) %>% 
+  relocate(year, age, comorbidity_score)
+
+HF_data
+```
+
+Make a DAG
+
+```{r, fig.height=4, fig.width=7•}
+HF_dag = dagitty('
+
+
+dag {
+age [pos="0.220,-0.289"]
+comorbidity_score [pos="0.603,-0.595"]
+therapy_phase_I [pos="0.925,-0.298"]
+therapy_phase_II [outcome,pos="0.665,0.171"]
+year [exposure,pos="-1.383,0.189"]
+year -> therapy_phase_II
+}
+
+
+')
+
+HF_dag %>% 
+  ggdag_classic(size = 3.5)+
+  theme_void()
+```
+
+
+Adjustment set for modelling: should investigate direct or total effect?
+
+```{r}
+adjustmentSets(HF_dag, effect = "total")
+```
+
+
+The distribution of "therapy_phase_II" is lognormal. Please use "lognormal()" family for its modelling.
+
+```{r}
+HF_data %>% 
+  ggplot(aes(therapy_phase_II))+
+  geom_density()
+```

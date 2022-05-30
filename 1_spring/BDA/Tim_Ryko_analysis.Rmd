@@ -1,0 +1,396 @@
+---
+title: "Tim Ryko Analysis"
+output:
+  html_document: default
+  pdf_document: default
+date: '2022-05-22'
+---
+
+# Preparation
+
+- Clear workspace
+
+- Be sure that correct project is opened
+
+- Install necessary packages
+
+- Load packages
+
+```{r}
+library(tidyverse)
+library(brms)
+options(mc.cores = parallel::detectCores()) #sets the system to use multiple cores simultaneously while fitting models
+
+library(patchwork)
+library(ggdag)
+library(dagitty)
+library(simglm)
+
+library(GGally)
+```
+
+# Get the data and explore it
+
+```{r}
+df = read_csv2('meie.csv')
+df
+```
+
+The columns are as follows:
+
+1. local (yes/no) - wether the last author of the paper is from this institute.
+2. journal - name of the journal
+3. cites - the number of citation this paper has collected over its lifetime
+4. IF - journal impact factor (the average number of citations per paper in this journal within 2 years from publication)
+5. year - the year of publication
+6. n_auth - the number of authors on this paper
+7. foreign_collaboration - whether any of the authors are from outside Estonia
+
+Let's check how much papers do we have in each of the journals:
+
+```{r}
+df %>%
+  group_by(journal) %>%
+  summarise(papers = length(journal)) %>%
+  arrange(desc(papers))
+```
+
+Not so much... Unfortunately, we have too many journals and too few publications in each of the journals to compare the data for different journals. We can safely delete it:
+
+```{r}
+df = df %>% select(-journal)
+df
+```
+
+```{r}
+df %>%
+  ggplot(aes(factor(year))) +
+    
+    geom_bar(fill='#69b3a2', color='#e9ecef') +
+    geom_text(aes(label = ..count..), stat = "count", vjust = 1.5, colour = "white") +
+    
+    ggtitle('Distrubution by years') +
+    labs(x = 'Year', y='Count') +
+    
+    theme_bw() +
+    theme(axis.line = element_blank(),
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank(),
+      panel.border = element_blank(),
+      panel.background = element_blank())
+```
+
+```{r}
+df %>%
+  ggplot(aes(factor(foreign_collaboration))) +
+    
+    geom_bar(fill='#69b3a2', color='#e9ecef') +
+    geom_text(aes(label = ..count..), stat = "count", vjust = 1.5, colour = "white") +
+    
+    ggtitle('Foreign collaboration ratio') +
+    labs(x = 'Foreign collaboration?', y='Count') +
+    
+    theme_bw() +
+    theme(axis.line = element_blank(),
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank(),
+      panel.border = element_blank(),
+      panel.background = element_blank())
+```
+```{r}
+df %>%
+  ggplot(aes(factor(local))) +
+    
+    geom_bar(fill='#69b3a2', color='#e9ecef') +
+    geom_text(aes(label = ..count..), stat = "count", vjust = 1.5, colour = "white") +
+    
+    ggtitle('Local ratio') +
+    labs(x = 'Local first author?', y='Count') +
+    
+    theme_bw() +
+    theme(axis.line = element_blank(),
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank(),
+      panel.border = element_blank(),
+      panel.background = element_blank())
+```
+
+# Questions to ask from this data
+
+Let's start with simple distributions and correlations analysis without any models:
+
+```{r}
+df %>%
+  select(-local, -foreign_collaboration) %>%
+    ggpairs()
+```
+
+It looks like there are no strong or even moderate correlations. But what if we will divide our data by categories?
+
+```{r}
+df %>%
+  select(-local) %>%
+    ggpairs(
+      aes(color = foreign_collaboration, alpha = 0.5),
+      columns=1:4
+    ) +
+  ggtitle('Divided by foreign collaboration')
+```
+
+```{r}
+df %>%
+  select(-foreign_collaboration) %>%
+    ggpairs(
+      aes(color = local, alpha = 0.5),
+      columns=2:5
+    ) +
+  ggtitle('Divided by local first author')
+```
+
+My proposal is that we have negative correlation between the year and the cites (it's seen even more clearly, when we take into account foreign collaboration and local categories). We will try to confirm it by modelling.
+
+Also, it seems to me quite logical, that IF should be correlated with the cites. However, we don't observe it in our data. Probably, we will be able to identify this correlation by making adjustments for various factors in the models.
+
+```{r}
+df %>%
+  ggplot(aes(year, cites)) +
+  geom_point() +
+  geom_smooth(method = 'lm')
+```
+```{r}
+df %>%
+  ggplot(aes(IF, cites)) +
+  geom_point() +
+  geom_smooth(method = 'lm')
+```
+
+So, here are the questions we are going to investigate:
+1) Correlation of the year and cites (negative expected)
+2) The effect of IF on cites (positive expected)
+
+# Models
+
+## Basic models
+
+Let's start with simple models.
+
+#### Fit the models for question 1 (year)
+
+```{r}
+simple_year_gm = brm(
+  formula = cites ~ year,
+  data = df,
+  family = gaussian(),
+  file = 'simple_year_gm'
+)
+```
+
+```{r}
+simple_year_hgm = brm(
+  formula = cites ~ year,
+  data = df,
+  family = hurdle_gamma(),
+  file = 'simple_year_hgm'
+)
+```
+
+#### Compare the models for question 1 (year)
+
+```{r}
+l1 = loo(simple_year_gm)
+l2 = loo(simple_year_hgm)
+loo_compare(l1, l2)
+```
+#### Fit the models for question 2 (IF)
+
+```{r}
+simple_if_gm = brm(
+  formula = cites ~ IF,
+  data = df,
+  family = gaussian(),
+  file = 'simple_if_gm'
+)
+```
+
+```{r}
+simple_if_hgm = brm(
+  formula = cites ~ IF,
+  data = df,
+  family = hurdle_gamma(),
+  # More iterations, because Tail Effective Samples Size (ESS) is too low
+  iter = 4000,
+  file = 'simple_if_hgm'
+)
+```
+
+#### Compare the models for question 2 (IF)
+
+```{r}
+l1 = loo(simple_if_gm)
+l2 = loo(simple_if_hgm)
+loo_compare(l1, l2)
+```
+Let's use hurdle gamma distribution models since they work better and quite appropriate.
+
+#### Plotting conditional effects
+
+```{r}
+simple_year_hgm %>% conditional_effects(effects = 'year')
+```
+
+```{r}
+simple_if_hgm %>% conditional_effects(effects = 'IF')
+```
+
+#### Model summaries
+
+```{r}
+simple_year_hgm
+```
+
+```{r}
+simple_if_hgm
+```
+
+Correlation with year is already not so bad, but correlation with IF has high uncertainty and the line is at least horizontal. Probably, adjusting for some meaningful factors will help.
+
+## Conditional models with adjusting
+
+#### DAG
+
+You are welocme to use this code on dagitty.net:
+
+```{r}
+dag = dagitty(
+  'dag {
+  bb="0,0,1,1"
+  IF [exposure,pos="0.283,0.685"]
+  cites [outcome,pos="0.448,0.737"]
+  foreign_collaboration [pos="0.648,0.799"]
+  local [pos="0.621,0.603"]
+  n_auth [pos="0.449,0.571"]
+  year [exposure,pos="0.518,0.830"]
+  IF -> cites
+  IF -> n_auth
+  foreign_collaboration -> cites
+  foreign_collaboration -> n_auth
+  local -> cites
+  local -> foreign_collaboration
+  n_auth -> cites
+  year -> cites
+  year -> foreign_collaboration
+  }
+'
+)
+
+dag %>% 
+  ggdag_classic(size = 3.5)+
+  theme_void()
+```
+
+#### Fit the adjusted models
+
+```{r}
+adjusted_hgm = brm(
+  formula = cites ~ year + IF + foreign_collaboration + local + n_auth,
+  data = df,
+  family = gaussian(),
+  file = 'adjusted_hgm'
+)
+```
+
+Less adjusted model:
+
+```{r}
+less_adjusted_hgm = brm(
+  formula = cites ~ year + IF + foreign_collaboration,
+  data = df,
+  family = gaussian(),
+  file = 'less_adjusted_hgm'
+)
+```
+
+
+Multilevel model:
+
+```{r}
+multilevel_hgm = brm(
+  formula = cites ~ 1 + year + IF + foreign_collaboration + local + n_auth +
+    (1 + n_auth |foreign_collaboration + local),
+  data = df,
+  family = gaussian(),
+  # More iterations, because Tail Effective Samples Size (ESS) is too low
+  iter = 6000,
+  file = 'multilevel_hgm'
+)
+```
+
+Warning: There were 2006 divergent transitions after warmup :(
+
+Model with cross-level interaction:
+
+```{r}
+cross_hgm = brm(
+  formula = cites ~ 1 + year + IF + foreign_collaboration + local + n_auth:foreign_collaboration,
+  data = df,
+  family = gaussian(),
+  # More iterations, because Tail Effective Samples Size (ESS) is too low
+  iter = 4000,
+  file = 'cross_hgm'
+)
+```
+
+#### Compare the models
+
+```{r}
+l1 = loo(adjusted_hgm)
+l2 = loo(multilevel_hgm)
+l3 = loo(cross_hgm)
+l4 = loo(less_adjusted_hgm)
+loo_compare(l1, l2, l3, l4)
+```
+
+There are no significant differences...
+
+#### Plotting conditional effects
+
+```{r}
+adjusted_hgm %>% conditional_effects(effects = 'year')
+```
+```{r}
+cross_hgm %>% conditional_effects(effects = 'year')
+```
+
+```{r}
+less_adjusted_hgm %>% conditional_effects(effects = 'year')
+```
+
+```{r}
+adjusted_hgm %>% conditional_effects(effects = 'IF')
+```
+
+```{r}
+cross_hgm %>% conditional_effects(effects = 'IF')
+```
+```{r}
+less_adjusted_hgm %>% conditional_effects(effects = 'IF')
+```
+
+
+#### Model summaries
+
+```{r}
+adjusted_hgm
+```
+
+```{r}
+cross_hgm
+```
+
+```{r}
+less_adjusted_hgm
+```
+
+# Conclusion
+
+In general, we can say that the models confirm a rather noticeable negative correlation of citations with the year, but the influence of IF could not be identified.

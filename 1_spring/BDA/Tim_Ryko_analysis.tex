@@ -1,0 +1,998 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+]{article}
+\title{Tim Ryko Analysis}
+\author{}
+\date{\vspace{-2.5em}2022-05-22}
+
+\usepackage{amsmath,amssymb}
+\usepackage{lmodern}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math}
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
+\hypersetup{
+  pdftitle={Tim Ryko Analysis},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+\urlstyle{same} % disable monospaced font for URLs
+\usepackage[margin=1in]{geometry}
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.77,0.63,0.00}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\usepackage{graphicx}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+% Set default figure placement to htbp
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\ifLuaTeX
+  \usepackage{selnolig}  % disable illegal ligatures
+\fi
+
+\begin{document}
+\maketitle
+
+\hypertarget{preparation}{%
+\section{Preparation}\label{preparation}}
+
+\begin{itemize}
+\item
+  Clear workspace
+\item
+  Be sure that correct project is opened
+\item
+  Install necessary packages
+\item
+  Define knitr settings
+\item
+  Load packages
+\end{itemize}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{library}\NormalTok{(tidyverse)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## -- Attaching packages --------------------------------------- tidyverse 1.3.1 --
+\end{verbatim}
+
+\begin{verbatim}
+## v ggplot2 3.3.6     v purrr   0.3.4
+## v tibble  3.1.7     v dplyr   1.0.9
+## v tidyr   1.2.0     v stringr 1.4.0
+## v readr   2.1.2     v forcats 0.5.1
+\end{verbatim}
+
+\begin{verbatim}
+## -- Conflicts ------------------------------------------ tidyverse_conflicts() --
+## x dplyr::filter() masks stats::filter()
+## x dplyr::lag()    masks stats::lag()
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{library}\NormalTok{(brms)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Loading required package: Rcpp
+\end{verbatim}
+
+\begin{verbatim}
+## Loading 'brms' package (version 2.17.0). Useful instructions
+## can be found by typing help('brms'). A more detailed introduction
+## to the package is available through vignette('brms_overview').
+\end{verbatim}
+
+\begin{verbatim}
+## 
+## Attaching package: 'brms'
+\end{verbatim}
+
+\begin{verbatim}
+## The following object is masked from 'package:stats':
+## 
+##     ar
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{options}\NormalTok{(}\AttributeTok{mc.cores =}\NormalTok{ parallel}\SpecialCharTok{::}\FunctionTok{detectCores}\NormalTok{()) }\CommentTok{\#sets the system to use multiple cores simultaneously while fitting models}
+
+\FunctionTok{library}\NormalTok{(patchwork)}
+\FunctionTok{library}\NormalTok{(ggdag)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+## Attaching package: 'ggdag'
+\end{verbatim}
+
+\begin{verbatim}
+## The following object is masked from 'package:stats':
+## 
+##     filter
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{library}\NormalTok{(dagitty)}
+\FunctionTok{library}\NormalTok{(simglm)}
+
+\FunctionTok{library}\NormalTok{(GGally)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Registered S3 method overwritten by 'GGally':
+##   method from   
+##   +.gg   ggplot2
+\end{verbatim}
+
+\hypertarget{get-the-data-and-explore-it}{%
+\section{Get the data and explore
+it}\label{get-the-data-and-explore-it}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{df }\OtherTok{=} \FunctionTok{read\_csv2}\NormalTok{(}\StringTok{\textquotesingle{}meie.csv\textquotesingle{}}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## i Using "','" as decimal and "'.'" as grouping mark. Use `read_delim()` for more control.
+\end{verbatim}
+
+\begin{verbatim}
+## Rows: 67 Columns: 7
+## -- Column specification --------------------------------------------------------
+## Delimiter: ";"
+## chr (3): local, journal, foreign_collaboration
+## dbl (3): cites, year, n_auth
+## 
+## i Use `spec()` to retrieve the full column specification for this data.
+## i Specify the column types or set `show_col_types = FALSE` to quiet this message.
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{df}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## # A tibble: 67 x 7
+##    local journal                       cites    IF  year n_auth foreign_collabo~
+##    <chr> <chr>                         <dbl> <dbl> <dbl>  <dbl> <chr>           
+##  1 no    pnas                             56   112  2022     16 yes             
+##  2 no    viruses                           2   504  2021     28 yes             
+##  3 yes   antimicrobial agents chemoth~     0    52  2021      5 yes             
+##  4 yes   J investigative dermatology       0    85  2021      9 no              
+##  5 no    viruses                           2   504  2021     10 yes             
+##  6 no    mol cell                          3    18  2021     17 yes             
+##  7 no    viruses                           1   504  2021      8 yes             
+##  8 no    pnas                             13   112  2021      7 yes             
+##  9 yes   frontiers microbiol               2    56  2021      9 no              
+## 10 no    mol cell                         13    18  2021     10 yes             
+## # ... with 57 more rows
+\end{verbatim}
+
+The columns are as follows:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  local (yes/no) - wether the last author of the paper is from this
+  institute.
+\item
+  journal - name of the journal
+\item
+  cites - the number of citation this paper has collected over its
+  lifetime
+\item
+  IF - journal impact factor (the average number of citations per paper
+  in this journal within 2 years from publication)
+\item
+  year - the year of publication
+\item
+  n\_auth - the number of authors on this paper
+\item
+  foreign\_collaboration - whether any of the authors are from outside
+  Estonia
+\end{enumerate}
+
+Let's check how much papers do we have in each of the journals:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{df }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{group\_by}\NormalTok{(journal) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{summarise}\NormalTok{(}\AttributeTok{papers =} \FunctionTok{length}\NormalTok{(journal)) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{arrange}\NormalTok{(}\FunctionTok{desc}\NormalTok{(papers))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## # A tibble: 35 x 2
+##    journal                           papers
+##    <chr>                              <int>
+##  1 sci reports                           11
+##  2 viruses                                8
+##  3 pnas                                   6
+##  4 antimicrobial agents chemotherapy      3
+##  5 mol cell                               3
+##  6 biochimie                              2
+##  7 frontiers microbiol                    2
+##  8 JMB                                    2
+##  9 MBIO                                   2
+## 10 NAR                                    2
+## # ... with 25 more rows
+\end{verbatim}
+
+Not so much\ldots{} Unfortunately, we have too many journals and too few
+publications in each of the journals to compare the data for different
+journals. We can safely delete it:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{df }\OtherTok{=}\NormalTok{ df }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{select}\NormalTok{(}\SpecialCharTok{{-}}\NormalTok{journal)}
+\NormalTok{df}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## # A tibble: 67 x 6
+##    local cites    IF  year n_auth foreign_collaboration
+##    <chr> <dbl> <dbl> <dbl>  <dbl> <chr>                
+##  1 no       56   112  2022     16 yes                  
+##  2 no        2   504  2021     28 yes                  
+##  3 yes       0    52  2021      5 yes                  
+##  4 yes       0    85  2021      9 no                   
+##  5 no        2   504  2021     10 yes                  
+##  6 no        3    18  2021     17 yes                  
+##  7 no        1   504  2021      8 yes                  
+##  8 no       13   112  2021      7 yes                  
+##  9 yes       2    56  2021      9 no                   
+## 10 no       13    18  2021     10 yes                  
+## # ... with 57 more rows
+\end{verbatim}
+
+You are welocme to use this code on dagil dagitty.net:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{df }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{ggplot}\NormalTok{(}\FunctionTok{aes}\NormalTok{(}\FunctionTok{factor}\NormalTok{(year))) }\SpecialCharTok{+}
+    
+    \FunctionTok{geom\_bar}\NormalTok{(}\AttributeTok{fill=}\StringTok{\textquotesingle{}\#69b3a2\textquotesingle{}}\NormalTok{, }\AttributeTok{color=}\StringTok{\textquotesingle{}\#e9ecef\textquotesingle{}}\NormalTok{) }\SpecialCharTok{+}
+    \FunctionTok{geom\_text}\NormalTok{(}\FunctionTok{aes}\NormalTok{(}\AttributeTok{label =}\NormalTok{ ..count..), }\AttributeTok{stat =} \StringTok{"count"}\NormalTok{, }\AttributeTok{vjust =} \FloatTok{1.5}\NormalTok{, }\AttributeTok{colour =} \StringTok{"white"}\NormalTok{) }\SpecialCharTok{+}
+    
+    \FunctionTok{ggtitle}\NormalTok{(}\StringTok{\textquotesingle{}Distrubution by years\textquotesingle{}}\NormalTok{) }\SpecialCharTok{+}
+    \FunctionTok{labs}\NormalTok{(}\AttributeTok{x =} \StringTok{\textquotesingle{}Year\textquotesingle{}}\NormalTok{, }\AttributeTok{y=}\StringTok{\textquotesingle{}Count\textquotesingle{}}\NormalTok{) }\SpecialCharTok{+}
+    
+    \FunctionTok{theme\_bw}\NormalTok{() }\SpecialCharTok{+}
+    \FunctionTok{theme}\NormalTok{(}\AttributeTok{axis.line =} \FunctionTok{element\_blank}\NormalTok{(),}
+      \AttributeTok{panel.grid.major =} \FunctionTok{element\_blank}\NormalTok{(),}
+      \AttributeTok{panel.grid.minor =} \FunctionTok{element\_blank}\NormalTok{(),}
+      \AttributeTok{panel.border =} \FunctionTok{element\_blank}\NormalTok{(),}
+      \AttributeTok{panel.background =} \FunctionTok{element\_blank}\NormalTok{())}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{Tim_Ryko_analysis_files/figure-latex/unnamed-chunk-5-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{df }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{ggplot}\NormalTok{(}\FunctionTok{aes}\NormalTok{(}\FunctionTok{factor}\NormalTok{(foreign\_collaboration))) }\SpecialCharTok{+}
+    
+    \FunctionTok{geom\_bar}\NormalTok{(}\AttributeTok{fill=}\StringTok{\textquotesingle{}\#69b3a2\textquotesingle{}}\NormalTok{, }\AttributeTok{color=}\StringTok{\textquotesingle{}\#e9ecef\textquotesingle{}}\NormalTok{) }\SpecialCharTok{+}
+    \FunctionTok{geom\_text}\NormalTok{(}\FunctionTok{aes}\NormalTok{(}\AttributeTok{label =}\NormalTok{ ..count..), }\AttributeTok{stat =} \StringTok{"count"}\NormalTok{, }\AttributeTok{vjust =} \FloatTok{1.5}\NormalTok{, }\AttributeTok{colour =} \StringTok{"white"}\NormalTok{) }\SpecialCharTok{+}
+    
+    \FunctionTok{ggtitle}\NormalTok{(}\StringTok{\textquotesingle{}Foreign collaboration ratio\textquotesingle{}}\NormalTok{) }\SpecialCharTok{+}
+    \FunctionTok{labs}\NormalTok{(}\AttributeTok{x =} \StringTok{\textquotesingle{}Foreign collaboration?\textquotesingle{}}\NormalTok{, }\AttributeTok{y=}\StringTok{\textquotesingle{}Count\textquotesingle{}}\NormalTok{) }\SpecialCharTok{+}
+    
+    \FunctionTok{theme\_bw}\NormalTok{() }\SpecialCharTok{+}
+    \FunctionTok{theme}\NormalTok{(}\AttributeTok{axis.line =} \FunctionTok{element\_blank}\NormalTok{(),}
+      \AttributeTok{panel.grid.major =} \FunctionTok{element\_blank}\NormalTok{(),}
+      \AttributeTok{panel.grid.minor =} \FunctionTok{element\_blank}\NormalTok{(),}
+      \AttributeTok{panel.border =} \FunctionTok{element\_blank}\NormalTok{(),}
+      \AttributeTok{panel.background =} \FunctionTok{element\_blank}\NormalTok{())}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{Tim_Ryko_analysis_files/figure-latex/unnamed-chunk-6-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{df }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{ggplot}\NormalTok{(}\FunctionTok{aes}\NormalTok{(}\FunctionTok{factor}\NormalTok{(local))) }\SpecialCharTok{+}
+    
+    \FunctionTok{geom\_bar}\NormalTok{(}\AttributeTok{fill=}\StringTok{\textquotesingle{}\#69b3a2\textquotesingle{}}\NormalTok{, }\AttributeTok{color=}\StringTok{\textquotesingle{}\#e9ecef\textquotesingle{}}\NormalTok{) }\SpecialCharTok{+}
+    \FunctionTok{geom\_text}\NormalTok{(}\FunctionTok{aes}\NormalTok{(}\AttributeTok{label =}\NormalTok{ ..count..), }\AttributeTok{stat =} \StringTok{"count"}\NormalTok{, }\AttributeTok{vjust =} \FloatTok{1.5}\NormalTok{, }\AttributeTok{colour =} \StringTok{"white"}\NormalTok{) }\SpecialCharTok{+}
+    
+    \FunctionTok{ggtitle}\NormalTok{(}\StringTok{\textquotesingle{}Local ratio\textquotesingle{}}\NormalTok{) }\SpecialCharTok{+}
+    \FunctionTok{labs}\NormalTok{(}\AttributeTok{x =} \StringTok{\textquotesingle{}Local first author?\textquotesingle{}}\NormalTok{, }\AttributeTok{y=}\StringTok{\textquotesingle{}Count\textquotesingle{}}\NormalTok{) }\SpecialCharTok{+}
+    
+    \FunctionTok{theme\_bw}\NormalTok{() }\SpecialCharTok{+}
+    \FunctionTok{theme}\NormalTok{(}\AttributeTok{axis.line =} \FunctionTok{element\_blank}\NormalTok{(),}
+      \AttributeTok{panel.grid.major =} \FunctionTok{element\_blank}\NormalTok{(),}
+      \AttributeTok{panel.grid.minor =} \FunctionTok{element\_blank}\NormalTok{(),}
+      \AttributeTok{panel.border =} \FunctionTok{element\_blank}\NormalTok{(),}
+      \AttributeTok{panel.background =} \FunctionTok{element\_blank}\NormalTok{())}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{Tim_Ryko_analysis_files/figure-latex/unnamed-chunk-7-1.pdf}
+
+\hypertarget{questions-to-ask-from-this-data}{%
+\section{Questions to ask from this
+data}\label{questions-to-ask-from-this-data}}
+
+Let's start with simple distributions and correlations analysis without
+any models:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{df }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{select}\NormalTok{(}\SpecialCharTok{{-}}\NormalTok{local, }\SpecialCharTok{{-}}\NormalTok{foreign\_collaboration) }\SpecialCharTok{\%\textgreater{}\%}
+    \FunctionTok{ggpairs}\NormalTok{()}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{Tim_Ryko_analysis_files/figure-latex/unnamed-chunk-8-1.pdf}
+
+It looks like there are no strong or even moderate correlations. But
+what if we will divide our data by categories?
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{df }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{select}\NormalTok{(}\SpecialCharTok{{-}}\NormalTok{local) }\SpecialCharTok{\%\textgreater{}\%}
+    \FunctionTok{ggpairs}\NormalTok{(}
+      \FunctionTok{aes}\NormalTok{(}\AttributeTok{color =}\NormalTok{ foreign\_collaboration, }\AttributeTok{alpha =} \FloatTok{0.5}\NormalTok{),}
+      \AttributeTok{columns=}\DecValTok{1}\SpecialCharTok{:}\DecValTok{4}
+\NormalTok{    ) }\SpecialCharTok{+}
+  \FunctionTok{ggtitle}\NormalTok{(}\StringTok{\textquotesingle{}Divided by foreign collaboration\textquotesingle{}}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{Tim_Ryko_analysis_files/figure-latex/unnamed-chunk-9-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{df }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{select}\NormalTok{(}\SpecialCharTok{{-}}\NormalTok{foreign\_collaboration) }\SpecialCharTok{\%\textgreater{}\%}
+    \FunctionTok{ggpairs}\NormalTok{(}
+      \FunctionTok{aes}\NormalTok{(}\AttributeTok{color =}\NormalTok{ local, }\AttributeTok{alpha =} \FloatTok{0.5}\NormalTok{),}
+      \AttributeTok{columns=}\DecValTok{2}\SpecialCharTok{:}\DecValTok{5}
+\NormalTok{    ) }\SpecialCharTok{+}
+  \FunctionTok{ggtitle}\NormalTok{(}\StringTok{\textquotesingle{}Divided by local first author\textquotesingle{}}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{Tim_Ryko_analysis_files/figure-latex/unnamed-chunk-10-1.pdf}
+
+My proposal is that we have negative correlation between the year and
+the cites (it's seen even more clearly, when we take into account
+foreign collaboration and local categories). We will try to confirm it
+by modelling.
+
+Also, it seems to me quite logical, that IF should be correlated with
+the cites. However, we don't observe it in our data. Probably, we will
+be able to identify this correlation by making adjustments for various
+factors in the models.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{df }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{ggplot}\NormalTok{(}\FunctionTok{aes}\NormalTok{(year, cites)) }\SpecialCharTok{+}
+  \FunctionTok{geom\_point}\NormalTok{() }\SpecialCharTok{+}
+  \FunctionTok{geom\_smooth}\NormalTok{(}\AttributeTok{method =} \StringTok{\textquotesingle{}lm\textquotesingle{}}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## `geom_smooth()` using formula 'y ~ x'
+\end{verbatim}
+
+\includegraphics{Tim_Ryko_analysis_files/figure-latex/unnamed-chunk-11-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{df }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{ggplot}\NormalTok{(}\FunctionTok{aes}\NormalTok{(IF, cites)) }\SpecialCharTok{+}
+  \FunctionTok{geom\_point}\NormalTok{() }\SpecialCharTok{+}
+  \FunctionTok{geom\_smooth}\NormalTok{(}\AttributeTok{method =} \StringTok{\textquotesingle{}lm\textquotesingle{}}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## `geom_smooth()` using formula 'y ~ x'
+\end{verbatim}
+
+\includegraphics{Tim_Ryko_analysis_files/figure-latex/unnamed-chunk-12-1.pdf}
+
+So, here are the questions we are going to investigate: 1) Correlation
+of the year and cites (negative expected) 2) The effect of IF on cites
+(positive expected)
+
+\hypertarget{models}{%
+\section{Models}\label{models}}
+
+\hypertarget{basic-models}{%
+\subsection{Basic models}\label{basic-models}}
+
+Let's start with simple models.
+
+\hypertarget{fit-the-models-for-question-1-year}{%
+\paragraph{Fit the models for question 1
+(year)}\label{fit-the-models-for-question-1-year}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{simple\_year\_gm }\OtherTok{=} \FunctionTok{brm}\NormalTok{(}
+  \AttributeTok{formula =}\NormalTok{ cites }\SpecialCharTok{\textasciitilde{}}\NormalTok{ year,}
+  \AttributeTok{data =}\NormalTok{ df,}
+  \AttributeTok{family =} \FunctionTok{gaussian}\NormalTok{(),}
+  \AttributeTok{file =} \StringTok{\textquotesingle{}simple\_year\_gm\textquotesingle{}}
+\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{simple\_year\_hgm }\OtherTok{=} \FunctionTok{brm}\NormalTok{(}
+  \AttributeTok{formula =}\NormalTok{ cites }\SpecialCharTok{\textasciitilde{}}\NormalTok{ year,}
+  \AttributeTok{data =}\NormalTok{ df,}
+  \AttributeTok{family =} \FunctionTok{hurdle\_gamma}\NormalTok{(),}
+  \AttributeTok{file =} \StringTok{\textquotesingle{}simple\_year\_hgm\textquotesingle{}}
+\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{compare-the-models-for-question-1-year}{%
+\paragraph{Compare the models for question 1
+(year)}\label{compare-the-models-for-question-1-year}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{l1 }\OtherTok{=} \FunctionTok{loo}\NormalTok{(simple\_year\_gm)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Warning: Found 1 observations with a pareto_k > 0.7 in model 'simple_year_gm'.
+## It is recommended to set 'moment_match = TRUE' in order to perform moment
+## matching for problematic observations.
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{l2 }\OtherTok{=} \FunctionTok{loo}\NormalTok{(simple\_year\_hgm)}
+\FunctionTok{loo\_compare}\NormalTok{(l1, l2)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##                 elpd_diff se_diff
+## simple_year_hgm   0.0       0.0  
+## simple_year_gm  -23.1       6.9
+\end{verbatim}
+
+\hypertarget{fit-the-models-for-question-2-if}{%
+\paragraph{Fit the models for question 2
+(IF)}\label{fit-the-models-for-question-2-if}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{simple\_if\_gm }\OtherTok{=} \FunctionTok{brm}\NormalTok{(}
+  \AttributeTok{formula =}\NormalTok{ cites }\SpecialCharTok{\textasciitilde{}}\NormalTok{ IF,}
+  \AttributeTok{data =}\NormalTok{ df,}
+  \AttributeTok{family =} \FunctionTok{gaussian}\NormalTok{(),}
+  \AttributeTok{file =} \StringTok{\textquotesingle{}simple\_if\_gm\textquotesingle{}}
+\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{simple\_if\_hgm }\OtherTok{=} \FunctionTok{brm}\NormalTok{(}
+  \AttributeTok{formula =}\NormalTok{ cites }\SpecialCharTok{\textasciitilde{}}\NormalTok{ IF,}
+  \AttributeTok{data =}\NormalTok{ df,}
+  \AttributeTok{family =} \FunctionTok{hurdle\_gamma}\NormalTok{(),}
+  \CommentTok{\# More iterations, because Tail Effective Samples Size (ESS) is too low}
+  \AttributeTok{iter =} \DecValTok{4000}\NormalTok{,}
+  \AttributeTok{file =} \StringTok{\textquotesingle{}simple\_if\_hgm\textquotesingle{}}
+\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{compare-the-models-for-question-2-if}{%
+\paragraph{Compare the models for question 2
+(IF)}\label{compare-the-models-for-question-2-if}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{l1 }\OtherTok{=} \FunctionTok{loo}\NormalTok{(simple\_if\_gm)}
+\NormalTok{l2 }\OtherTok{=} \FunctionTok{loo}\NormalTok{(simple\_if\_hgm)}
+\FunctionTok{loo\_compare}\NormalTok{(l1, l2)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##               elpd_diff se_diff
+## simple_if_hgm   0.0       0.0  
+## simple_if_gm  -24.4       6.2
+\end{verbatim}
+
+Let's use hurdle gamma distribution models since they work better and
+quite appropriate.
+
+\hypertarget{plotting-conditional-effects}{%
+\paragraph{Plotting conditional
+effects}\label{plotting-conditional-effects}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{simple\_year\_hgm }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{conditional\_effects}\NormalTok{(}\AttributeTok{effects =} \StringTok{\textquotesingle{}year\textquotesingle{}}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{Tim_Ryko_analysis_files/figure-latex/unnamed-chunk-19-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{simple\_if\_hgm }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{conditional\_effects}\NormalTok{(}\AttributeTok{effects =} \StringTok{\textquotesingle{}IF\textquotesingle{}}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{Tim_Ryko_analysis_files/figure-latex/unnamed-chunk-20-1.pdf}
+
+\hypertarget{model-summaries}{%
+\paragraph{Model summaries}\label{model-summaries}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{simple\_year\_hgm}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##  Family: hurdle_gamma 
+##   Links: mu = log; shape = identity; hu = identity 
+## Formula: cites ~ year 
+##    Data: df (Number of observations: 67) 
+##   Draws: 4 chains, each with iter = 2000; warmup = 1000; thin = 1;
+##          total post-warmup draws = 4000
+## 
+## Population-Level Effects: 
+##           Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## Intercept   296.70    102.19    92.65   499.27 1.00     3796     2376
+## year         -0.15      0.05    -0.25    -0.04 1.00     3796     2376
+## 
+## Family Specific Parameters: 
+##       Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## shape     1.17      0.18     0.84     1.55 1.00     4405     2939
+## hu        0.04      0.02     0.01     0.11 1.00     4526     2530
+## 
+## Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
+## and Tail_ESS are effective sample size measures, and Rhat is the potential
+## scale reduction factor on split chains (at convergence, Rhat = 1).
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{simple\_if\_hgm}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##  Family: hurdle_gamma 
+##   Links: mu = log; shape = identity; hu = identity 
+## Formula: cites ~ IF 
+##    Data: df (Number of observations: 67) 
+##   Draws: 4 chains, each with iter = 4000; warmup = 2000; thin = 1;
+##          total post-warmup draws = 8000
+## 
+## Population-Level Effects: 
+##           Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## Intercept     3.28      0.16     2.98     3.59 1.00     7116     5780
+## IF           -0.00      0.00    -0.00     0.00 1.00     9947     5293
+## 
+## Family Specific Parameters: 
+##       Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## shape     1.06      0.17     0.77     1.42 1.00     4979     4463
+## hu        0.04      0.02     0.01     0.10 1.00     4638     3337
+## 
+## Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
+## and Tail_ESS are effective sample size measures, and Rhat is the potential
+## scale reduction factor on split chains (at convergence, Rhat = 1).
+\end{verbatim}
+
+Correlation with year is already not so bad, but correlation with IF has
+high uncertainty and the line is at least horizontal. Probably,
+adjusting for some meaningful factors will help.
+
+\hypertarget{conditional-models-with-adjusting}{%
+\subsection{Conditional models with
+adjusting}\label{conditional-models-with-adjusting}}
+
+\hypertarget{dag}{%
+\paragraph{DAG}\label{dag}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{dag }\OtherTok{=} \FunctionTok{dagitty}\NormalTok{(}
+  \StringTok{\textquotesingle{}dag \{}
+\StringTok{  bb="0,0,1,1"}
+\StringTok{  IF [exposure,pos="0.283,0.685"]}
+\StringTok{  cites [outcome,pos="0.448,0.737"]}
+\StringTok{  foreign\_collaboration [pos="0.648,0.799"]}
+\StringTok{  local [pos="0.621,0.603"]}
+\StringTok{  n\_auth [pos="0.449,0.571"]}
+\StringTok{  year [exposure,pos="0.518,0.830"]}
+\StringTok{  IF {-}\textgreater{} cites}
+\StringTok{  IF {-}\textgreater{} n\_auth}
+\StringTok{  foreign\_collaboration {-}\textgreater{} cites}
+\StringTok{  foreign\_collaboration {-}\textgreater{} n\_auth}
+\StringTok{  local {-}\textgreater{} cites}
+\StringTok{  local {-}\textgreater{} foreign\_collaboration}
+\StringTok{  n\_auth {-}\textgreater{} cites}
+\StringTok{  year {-}\textgreater{} cites}
+\StringTok{  year {-}\textgreater{} foreign\_collaboration}
+\StringTok{  \}}
+\StringTok{\textquotesingle{}}
+\NormalTok{)}
+
+\NormalTok{dag }\SpecialCharTok{\%\textgreater{}\%} 
+  \FunctionTok{ggdag\_classic}\NormalTok{(}\AttributeTok{size =} \FloatTok{3.5}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{theme\_void}\NormalTok{()}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{Tim_Ryko_analysis_files/figure-latex/unnamed-chunk-23-1.pdf}
+
+\hypertarget{fit-the-adjusted-models}{%
+\paragraph{Fit the adjusted models}\label{fit-the-adjusted-models}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{adjusted\_hgm }\OtherTok{=} \FunctionTok{brm}\NormalTok{(}
+  \AttributeTok{formula =}\NormalTok{ cites }\SpecialCharTok{\textasciitilde{}}\NormalTok{ year }\SpecialCharTok{+}\NormalTok{ IF }\SpecialCharTok{+}\NormalTok{ foreign\_collaboration }\SpecialCharTok{+}\NormalTok{ local }\SpecialCharTok{+}\NormalTok{ n\_auth,}
+  \AttributeTok{data =}\NormalTok{ df,}
+  \AttributeTok{family =} \FunctionTok{gaussian}\NormalTok{(),}
+  \AttributeTok{file =} \StringTok{\textquotesingle{}adjusted\_hgm\textquotesingle{}}
+\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+Less adjusted model:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{less\_adjusted\_hgm }\OtherTok{=} \FunctionTok{brm}\NormalTok{(}
+  \AttributeTok{formula =}\NormalTok{ cites }\SpecialCharTok{\textasciitilde{}}\NormalTok{ year }\SpecialCharTok{+}\NormalTok{ IF }\SpecialCharTok{+}\NormalTok{ foreign\_collaboration,}
+  \AttributeTok{data =}\NormalTok{ df,}
+  \AttributeTok{family =} \FunctionTok{gaussian}\NormalTok{(),}
+  \AttributeTok{file =} \StringTok{\textquotesingle{}less\_adjusted\_hgm\textquotesingle{}}
+\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+Multilevel model:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{multilevel\_hgm }\OtherTok{=} \FunctionTok{brm}\NormalTok{(}
+  \AttributeTok{formula =}\NormalTok{ cites }\SpecialCharTok{\textasciitilde{}} \DecValTok{1} \SpecialCharTok{+}\NormalTok{ year }\SpecialCharTok{+}\NormalTok{ IF }\SpecialCharTok{+}\NormalTok{ foreign\_collaboration }\SpecialCharTok{+}\NormalTok{ local }\SpecialCharTok{+}\NormalTok{ n\_auth }\SpecialCharTok{+}
+\NormalTok{    (}\DecValTok{1} \SpecialCharTok{+}\NormalTok{ n\_auth }\SpecialCharTok{|}\NormalTok{foreign\_collaboration }\SpecialCharTok{+}\NormalTok{ local),}
+  \AttributeTok{data =}\NormalTok{ df,}
+  \AttributeTok{family =} \FunctionTok{gaussian}\NormalTok{(),}
+  \CommentTok{\# More iterations, because Tail Effective Samples Size (ESS) is too low}
+  \AttributeTok{iter =} \DecValTok{6000}\NormalTok{,}
+  \AttributeTok{file =} \StringTok{\textquotesingle{}multilevel\_hgm\textquotesingle{}}
+\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+Warning: There were 2006 divergent transitions after warmup :(
+
+Model with cross-level interaction:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{cross\_hgm }\OtherTok{=} \FunctionTok{brm}\NormalTok{(}
+  \AttributeTok{formula =}\NormalTok{ cites }\SpecialCharTok{\textasciitilde{}} \DecValTok{1} \SpecialCharTok{+}\NormalTok{ year }\SpecialCharTok{+}\NormalTok{ IF }\SpecialCharTok{+}\NormalTok{ foreign\_collaboration }\SpecialCharTok{+}\NormalTok{ local }\SpecialCharTok{+}\NormalTok{ n\_auth}\SpecialCharTok{:}\NormalTok{foreign\_collaboration,}
+  \AttributeTok{data =}\NormalTok{ df,}
+  \AttributeTok{family =} \FunctionTok{gaussian}\NormalTok{(),}
+  \CommentTok{\# More iterations, because Tail Effective Samples Size (ESS) is too low}
+  \AttributeTok{iter =} \DecValTok{4000}\NormalTok{,}
+  \AttributeTok{file =} \StringTok{\textquotesingle{}cross\_hgm\textquotesingle{}}
+\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{compare-the-models}{%
+\paragraph{Compare the models}\label{compare-the-models}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{l1 }\OtherTok{=} \FunctionTok{loo}\NormalTok{(adjusted\_hgm)}
+\NormalTok{l2 }\OtherTok{=} \FunctionTok{loo}\NormalTok{(multilevel\_hgm)}
+\NormalTok{l3 }\OtherTok{=} \FunctionTok{loo}\NormalTok{(cross\_hgm)}
+\NormalTok{l4 }\OtherTok{=} \FunctionTok{loo}\NormalTok{(less\_adjusted\_hgm)}
+\FunctionTok{loo\_compare}\NormalTok{(l1, l2, l3, l4)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##                   elpd_diff se_diff
+## less_adjusted_hgm  0.0       0.0   
+## adjusted_hgm      -1.3       1.4   
+## multilevel_hgm    -1.7       1.5   
+## cross_hgm         -2.0       1.5
+\end{verbatim}
+
+There are no significant differences\ldots{}
+
+\hypertarget{plotting-conditional-effects-1}{%
+\paragraph{Plotting conditional
+effects}\label{plotting-conditional-effects-1}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{adjusted\_hgm }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{conditional\_effects}\NormalTok{(}\AttributeTok{effects =} \StringTok{\textquotesingle{}year\textquotesingle{}}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{Tim_Ryko_analysis_files/figure-latex/unnamed-chunk-29-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{cross\_hgm }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{conditional\_effects}\NormalTok{(}\AttributeTok{effects =} \StringTok{\textquotesingle{}year\textquotesingle{}}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{Tim_Ryko_analysis_files/figure-latex/unnamed-chunk-30-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{less\_adjusted\_hgm }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{conditional\_effects}\NormalTok{(}\AttributeTok{effects =} \StringTok{\textquotesingle{}year\textquotesingle{}}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{Tim_Ryko_analysis_files/figure-latex/unnamed-chunk-31-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{adjusted\_hgm }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{conditional\_effects}\NormalTok{(}\AttributeTok{effects =} \StringTok{\textquotesingle{}IF\textquotesingle{}}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{Tim_Ryko_analysis_files/figure-latex/unnamed-chunk-32-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{cross\_hgm }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{conditional\_effects}\NormalTok{(}\AttributeTok{effects =} \StringTok{\textquotesingle{}IF\textquotesingle{}}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{Tim_Ryko_analysis_files/figure-latex/unnamed-chunk-33-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{less\_adjusted\_hgm }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{conditional\_effects}\NormalTok{(}\AttributeTok{effects =} \StringTok{\textquotesingle{}IF\textquotesingle{}}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{Tim_Ryko_analysis_files/figure-latex/unnamed-chunk-34-1.pdf}
+
+\hypertarget{model-summaries-1}{%
+\paragraph{Model summaries}\label{model-summaries-1}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{adjusted\_hgm}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##  Family: gaussian 
+##   Links: mu = identity; sigma = identity 
+## Formula: cites ~ year + IF + foreign_collaboration + local + n_auth 
+##    Data: df (Number of observations: 67) 
+##   Draws: 4 chains, each with iter = 2000; warmup = 1000; thin = 1;
+##          total post-warmup draws = 4000
+## 
+## Population-Level Effects: 
+##                          Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS
+## Intercept                 9559.90   2489.47  4559.37 14483.84 1.00     4876
+## year                        -4.73      1.23    -7.17    -2.25 1.00     4875
+## IF                          -0.01      0.02    -0.04     0.03 1.00     5311
+## foreign_collaborationyes    12.72      7.43    -2.09    27.19 1.00     3035
+## localyes                    -4.15      7.07   -18.12     9.47 1.00     3374
+## n_auth                       0.52      0.52    -0.48     1.53 1.00     3929
+##                          Tail_ESS
+## Intercept                    3011
+## year                         2988
+## IF                           3049
+## foreign_collaborationyes     2766
+## localyes                     2395
+## n_auth                       2965
+## 
+## Family Specific Parameters: 
+##       Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## sigma    21.61      1.99    18.16    25.85 1.00     4169     3052
+## 
+## Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
+## and Tail_ESS are effective sample size measures, and Rhat is the potential
+## scale reduction factor on split chains (at convergence, Rhat = 1).
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{cross\_hgm}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##  Family: gaussian 
+##   Links: mu = identity; sigma = identity 
+## Formula: cites ~ 1 + year + IF + foreign_collaboration + local + n_auth:foreign_collaboration 
+##    Data: df (Number of observations: 67) 
+##   Draws: 4 chains, each with iter = 4000; warmup = 2000; thin = 1;
+##          total post-warmup draws = 8000
+## 
+## Population-Level Effects: 
+##                                 Estimate Est.Error l-95% CI u-95% CI Rhat
+## Intercept                        9550.05   2553.71  4490.90 14579.25 1.00
+## year                               -4.72      1.27    -7.21    -2.22 1.00
+## IF                                 -0.01      0.02    -0.04     0.03 1.00
+## foreign_collaborationyes            6.44     13.90   -21.40    32.96 1.00
+## localyes                           -3.82      7.30   -18.13    10.14 1.00
+## foreign_collaborationno:n_auth     -0.36      1.70    -3.66     3.00 1.00
+## foreign_collaborationyes:n_auth     0.60      0.55    -0.51     1.70 1.00
+##                                 Bulk_ESS Tail_ESS
+## Intercept                          11076     6098
+## year                               11079     6137
+## IF                                 10042     6423
+## foreign_collaborationyes            5800     5259
+## localyes                            9535     5923
+## foreign_collaborationno:n_auth      5978     5312
+## foreign_collaborationyes:n_auth     8318     5710
+## 
+## Family Specific Parameters: 
+##       Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## sigma    21.73      1.96    18.29    26.00 1.00     9017     6199
+## 
+## Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
+## and Tail_ESS are effective sample size measures, and Rhat is the potential
+## scale reduction factor on split chains (at convergence, Rhat = 1).
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{less\_adjusted\_hgm}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##  Family: gaussian 
+##   Links: mu = identity; sigma = identity 
+## Formula: cites ~ year + IF + foreign_collaboration 
+##    Data: df (Number of observations: 67) 
+##   Draws: 4 chains, each with iter = 2000; warmup = 1000; thin = 1;
+##          total post-warmup draws = 4000
+## 
+## Population-Level Effects: 
+##                          Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS
+## Intercept                 8990.65   2439.21  4182.27 13801.81 1.00     4378
+## year                        -4.45      1.21    -6.84    -2.07 1.00     4378
+## IF                          -0.00      0.02    -0.04     0.03 1.00     4697
+## foreign_collaborationyes    18.10      5.52     7.61    28.85 1.00     4843
+##                          Tail_ESS
+## Intercept                    3113
+## year                         3113
+## IF                           3246
+## foreign_collaborationyes     3134
+## 
+## Family Specific Parameters: 
+##       Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## sigma    21.52      1.97    18.09    25.92 1.00     4279     2970
+## 
+## Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
+## and Tail_ESS are effective sample size measures, and Rhat is the potential
+## scale reduction factor on split chains (at convergence, Rhat = 1).
+\end{verbatim}
+
+\hypertarget{conclusion}{%
+\section{Conclusion}\label{conclusion}}
+
+In general, we can say that the models confirm a rather noticeable
+negative correlation of citations with the year, but the influence of IF
+could not be identified.
+
+\end{document}

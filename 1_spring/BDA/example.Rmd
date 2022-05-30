@@ -1,0 +1,438 @@
+---
+title: "Physiotherapy use after hip fracture in Estonia"
+output: html_notebook
+---
+
+
+# Packages
+
+```{r}
+library(tidyverse)
+library(brms)
+library(see)
+library(dagitty)
+library(ggdag)
+library(patchwork)
+library(tidybayes)
+options(mc.cores = parallel::detectCores())
+```
+
+# Data
+
+```{r}
+set.seed(123)
+
+hf_data = read_csv("HF_data.csv") %>% 
+  mutate(therapy = therapy_phase_I + therapy_phase_II) %>% 
+  filter(therapy > 0, county != "homeless") %>% 
+  select(-therapy_phase_I, -therapy_phase_II)
+
+# REDUCE DATA SIZE
+set.seed(123)
+
+hf_data_new = hf_data %>% 
+  group_by(year, county) %>% 
+  sample_frac(size = 0.15)
+
+hf_data_new
+```
+
+
+Let's analyse regional differences
+
+-- Let's just calculate means
+
+```{r}
+hf_data_new %>% 
+  group_by(county) %>% 
+  summarise(mean_therapy = mean(therapy))
+```
+
+Now let's do some plotting
+
+```{r}
+hf_data_new %>% 
+  group_by(county) %>% 
+  summarise(mean_therapy = mean(therapy)) %>% 
+  ggplot(aes(x = county,
+             y = mean_therapy))+
+  geom_point()
+```
+
+Let's see the outcome variable's distibution
+
+```{r}
+hf_data_new %>% 
+  ggplot(aes(x = therapy))+
+  geom_density()
+```
+
+Let's make a simple model
+
+```{r}
+pm1 = brm(formula = therapy ~ county,
+          data = hf_data_new,
+          family = gaussian(),
+          file = "models/pm1")
+
+pm2 = brm(formula = therapy ~ county,
+          data = hf_data_new,
+          family = lognormal(),
+          file = "models/pm2")
+```
+
+Let's see these models' fits
+
+```{r}
+pm1 %>% pp_check() + xlim(0, 50)
+pm2 %>% pp_check() + xlim(0, 50)
+```
+
+Let's compare these models' fit
+
+```{r}
+l1 = loo(pm1)
+l2 = loo(pm2)
+loo_compare(l1, l2)
+```
+
+
+
+Let's see model effects
+
+```{r}
+pm2 %>% conditional_effects(effects = "county")
+```
+
+Multi-level or hierachical model
+
+```{r}
+pm4 = brm(formula = therapy ~ 1 + (1 | county),
+          data = hf_data_new,
+          family = lognormal(),
+          file = "models/pm4")
+```
+
+Let's see model's predictions
+
+```{r}
+newdata = expand_grid(county = unique(hf_data_new$county))
+
+#alternative
+#newdata = tibble(county = c("harju", "tartu"...))
+
+posterior1 = pm4 %>% epred_draws(re_formula = NULL,
+                                 newdata = newdata,
+                                 value = "therapy")
+
+posterior2 = pm2 %>% epred_draws(newdata = newdata,
+                                 value = "therapy")
+ 
+summary1 = posterior1 %>% median_hdi() %>% mutate(model = 1)
+
+summary2 = posterior2 %>% median_hdi() %>% mutate(model = 2)
+
+A = ggplot()+
+geom_pointinterval(data = summary1,
+                     aes(x = county, 
+                         y = therapy,
+                         ymin = .lower,
+                         ymax = .upper))+
+  ggtitle("Multi-level")
+
+B = ggplot()+
+geom_pointinterval(data = summary2,
+                     aes(x = county, 
+                         y = therapy,
+                         ymin = .lower,
+                         ymax = .upper))+
+  ggtitle("Additive")
+
+A/B
+
+summaries = bind_rows(summary1, summary2)
+
+summaries %>% 
+  ggplot()+
+  geom_pointinterval(    aes(x = county, 
+                         y = therapy,
+                         ymin = .lower,
+                         ymax = .upper,
+                         color = model,
+                         type = model), alpha = 0.4)
+```
+
+
+
+
+
+
+
+Let's see temporal trends
+
+-- Find aggregated estimates using raw data
+
+```{r}
+hf_data_new %>% 
+  group_by(year) %>% 
+  summarise(mean_therapy = mean(therapy))
+```
+
+-- Let's plot these aggregated estimates
+
+```{r}
+hf_data %>% 
+  group_by(year, county) %>% 
+  summarise(mean_therapy = mean(therapy)) %>% 
+  ggplot(aes(x = year,
+             y = mean_therapy))+
+  geom_line()+
+  facet_wrap(~county)
+```
+
+Let's model temporal changes
+
+```{r}
+pm3 = brm(therapy ~ year,
+          family = lognormal(),
+          data = hf_data_new,
+          file = "models/pm3")
+```
+Let's plot temporal changes from model
+
+```{r}
+pm3 %>% conditional_effects(effects = "year")
+```
+
+
+
+```{r}
+pm6 = brm(therapy ~ s(year, k = 3),
+          family = lognormal(),
+          data = hf_data %>% filter(county == "idaviru") %>% droplevels())
+```
+
+
+```{r}
+pm6 %>% conditional_smooths(effects = "year")
+```
+
+
+
+
+
+
+
+
+
+
+# TASKS
+
+## Task 1: analyze regional differences
+
+```{r}
+m9.1 = brm(therapy ~ year + county + sex + age + comorbidity_score, 
+           data = hf_data_new,
+           family = lognormal(),
+           file = "models/m9.1", 
+           iter = 1000)
+
+m9.2 = brm(therapy ~ year*county + sex + age + comorbidity_score, 
+           data = hf_data_new,
+           family = lognormal(),
+           file = "models/m9.2", 
+           iter = 1000,
+           prior = prior(normal(0,5), class = "b")) 
+
+m9.3 = brm(therapy ~ year + (1 | county) + sex + age + comorbidity_score, 
+           data = hf_data_new,
+           family = lognormal(),
+           file = "models/m9.3", 
+           iter = 1000) 
+```
+
+Comparison
+
+```{r, warning = F}
+l1 = loo(m9.1)
+l2 = loo(m9.2)
+l3 = loo(m9.3)
+
+loo_compare(l1, l2, l3)
+```
+
+Result
+
+```{r}
+newdata1 = expand.grid(year = 2013,
+                      sex = "f",
+                      age = median(hf_data_new$age),
+                      comorbidity_score = median(hf_data_new$comorbidity_score),
+                      county = levels(as.factor(hf_data_new$county)))
+
+posterior1 = m9.3 %>% epred_draws(newdata = newdata1,
+                     value = "therapy",
+                     re_formula = NULL)
+
+summary1 = posterior1 %>% median_hdi()
+
+ggplot()+
+  geom_pointrange(data = summary1, aes(county, therapy, ymin = .lower, ymax = .upper))+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.2))+
+  #add crude estimates
+  geom_point(data = hf_data_new %>% group_by(county) %>% summarize(therapy = mean(therapy)), aes(county, therapy), alpha = 0.5, color = "red", size = 2.5)+
+  ggtitle("Crude and adjusted regional differences")
+```
+
+
+## Task 2: analyze temporal trends
+
+### Country-wide trends
+
+```{r, warning = F}
+m9.4 = brm(therapy ~ year + county, 
+           data = hf_data_new,
+           family = lognormal(),
+           file = "models/m9.4", 
+           iter = 1000)
+
+m9.5 = brm(therapy ~ year + (1 | county), 
+           data = hf_data_new,
+           family = lognormal(),
+           file = "models/m9.5", 
+           iter = 1000)
+
+m9.6 = brm(therapy ~ year + (year | county), 
+           data = hf_data_new,
+           family = lognormal(),
+           file = "models/m9.6", 
+           iter = 1000,
+           control = list(adapt_delta = 0.95))
+
+m9.7 = brm(therapy ~ s(year, k = 3) + (1 | county), 
+           data = hf_data_new,
+           family = lognormal(),
+           file = "models/m9.7", 
+           iter = 1000)
+
+m9.8 = brm(therapy ~ 1 + (year | county), 
+           data = hf_data_new,
+           family = lognormal(),
+           file = "models/m9.8", 
+           iter = 2000,
+           control = list(adapt_delta = 0.95))
+
+test = brm(therapy ~ year + (year | county), 
+           family = lognormal(),
+           data = hf_data, 
+           iter = 2000)
+```
+
+
+Comparison
+
+```{r}
+l4 = loo(m9.4, moment_match = TRUE)
+l5 = loo(m9.5)
+l6 = loo(m9.6)
+l7 = loo(m9.7)
+
+loo_compare(l4, l5, l6, l7)
+```
+
+```{r}
+hf_data_new %>% 
+  group_by(year) %>% 
+  summarise(therapy = mean(therapy)) %>% 
+  ggplot(aes(year, therapy))+
+  geom_line()
+
+conditions = hf_data_new %>% make_conditions(vars = "county")
+
+m9.6 %>% conditional_effects(effects = "year",
+                             re_formula = NA)
+
+m9.7 %>% conditional_smooths(effects = "year",
+                             re_formula = NULL)
+```
+
+### Regional trends
+
+Crude
+
+```{r}
+hf_data_new %>% 
+  group_by(year, county) %>% 
+  summarise(therapy = mean(therapy)) %>% 
+  ggplot(aes(year, therapy))+
+  geom_line()+
+  facet_wrap(~county)
+```
+
+Adjusted
+
+```{r, fig.width=6, fig.height=5}
+conditions = hf_data_new %>% make_conditions(vars = c("county"))
+
+conditions2 = tibble(county = unique(hf_data_new$county),
+                    row.names = unique(hf_data_new$county))
+
+m9.5 %>% conditional_effects(effects = "year",
+                             re_formula = NULL,
+                             conditions = conditions)
+
+m9.6 %>% conditional_effects(effects = "year",
+                             re_formula = NULL,
+                             conditions = conditions)
+
+m9.8 %>% conditional_effects(effects = "year",
+                             re_formula = NULL,
+                             conditions = conditions)
+
+m9.10 %>% conditional_effects(effects = "year_s",
+                             re_formula = NULL,
+                             conditions = conditions)
+
+test %>% conditional_effects(effects = "year",
+                             re_formula = NULL,
+                             conditions = conditions)
+```
+
+
+```{r}
+asd = m9.6 %>% as_draws_df()
+```
+
+
+
+
+Result
+
+```{r}
+newdata2 = expand.grid(year = seq(2009, 2017, 0.1),
+                      sex = "f",
+                      age = median(hf_data_new$age),
+                      comorbidity_score = median(hf_data_new$comorbidity_score),
+                      county = levels(as.factor(hf_data_new$county)))
+
+posterior2 = m9.9 %>% epred_draws(newdata = newdata2,
+                     value = "therapy",
+                     re_formula = NULL)
+
+summary1 = posterior2 %>% median_hdi()
+
+ggplot()+
+  geom_line(data = summary1, aes(year, therapy), size = 1)+
+  geom_line(data = summary1, aes(year, .lower))+
+  geom_line(data = summary1, aes(year, .upper))+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.2))+
+  facet_wrap(~county)
+
+
+
+
++
+  #add crude estimates
+  geom_point(data = hf_data_new %>% group_by(county) %>% summarize(therapy = mean(therapy)), aes(county, therapy), alpha = 0.5, color = "red", size = 2.5)+
+  ggtitle("Crude and adjusted regional differences")
+```

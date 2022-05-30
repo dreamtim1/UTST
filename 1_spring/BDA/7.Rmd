@@ -1,0 +1,299 @@
+---
+title: "ANOVA-like"
+output: html_notebook
+---
+
+# Preparation
+
+ Clear workspace
+
+- Be sure that correct project is opened
+
+- Install necessary packages
+
+```{r}
+install.packages(c("bayesplot", "tidybayes", "modelr", "here"))
+```
+
+- Define knitr  settings
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.width = 8, fig.height = 3)
+```
+
+- make a folder "models" into your project folder
+
+
+```{r}
+library(tidyverse)
+library(here)
+# library(brms)
+library(bayesplot)
+library(tidybayes)
+library(modelr)
+library(rstan)
+library(brms)
+rstan_options(auto_write = TRUE)
+options(mc.cores = parallel::detectCores())
+```
+
+
+
+# Data
+
+```{r message=FALSE}
+sch <- read_csv("schools.csv")
+sch$school <- as.character(sch$school)
+
+#count(sch, school) %>% arrange(desc(n))
+sch %>% 
+  ggplot(aes(school))+
+  geom_bar()+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
+
+# 1. a no-pooling model w.o. intercept and with common sigma for all groups
+
+$$y_i \sim N(\mu, \sigma)$$
+$$\mu = 0 + \beta x_i$$
+
+```{r}
+anova_m2 <- brm(score1 ~ 0 + school, 
+                data=sch,
+                file = "models/anova_m2",
+                seed = 123)
+posterior_summary(anova_m2)
+```
+
+```{r}
+ce1 = anova_m2 %>% conditional_effects(effects = "school")
+
+p1 = plot(ce1, ask = F)[[1]]+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
+  ggtitle("score1 ~ 0 + school")
+
+p1
+```
+
+
+# 2. a no-pooling model with intercept and with common sigma for all groups
+
+$$y_i \sim N(\mu, \sigma)$$
+$$\mu = \beta_0 + \beta x_i$$
+
+```{r}
+anova_m2.3 <- brm(score1 ~ 1 + school, 
+                data=sch,
+                file = "models/anova_m2.3",
+                seed = 123)
+posterior_summary(anova_m2.3)
+```
+
+```{r}
+ce2 = anova_m2.3 %>% conditional_effects(effects = "school")
+
+p2 = plot(ce2, ask = F)[[1]]+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
+  ggtitle("score1 ~ 1 + school")
+
+p2
+```
+
+
+# 3. a  no-pooling model with intercept and with separate slopes and sigmas for all groups (except for the 1st group, which is covered by $\beta_0$ and $\beta_{0sd}$.)
+
+$$y_i \sim N(\mu, \sigma)$$
+$$\mu = \beta_0 + \beta x_i$$
+$$\sigma = \beta_{0sd} + \beta_{1sd} x_i$$
+
+```{r}
+anova_m2.2 <- brm(bf(score1 ~ 0 + school, sigma ~ 0 + school), 
+                data=sch,
+                prior=c(prior(normal(50, 20), class="b"),
+                        prior(normal(10,2), class="b", dpar="sigma")),
+                chains = 1,
+                file = "models/anova_m2.2",
+                seed = 123)
+anova_m2.2 %>% posterior_summary()
+```
+
+```{r}
+ce3 = anova_m2.2 %>% conditional_effects(effects = "school")
+
+p3 = plot(ce3, ask = F)[[1]]+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
+  ggtitle("score1 ~ 0 + school, sigma ~ 0 + school")
+
+p3
+```
+
+# 4. A simple ANOVA-like 2-level model with common sigma for all groups
+
+$$y_i \sim N(\mu, \sigma_y)$$
+
+$$\mu \sim N(mu, sd)$$ 
+
+
+```{r eval=FALSE}
+anova_m1 <- brm(score1 ~ 1 + (1 | school), 
+                data=sch,
+                file = "models/anova_m1",
+                seed = 123)
+posterior_summary(anova_m1)
+```
+```{r}
+anova_m1 %>%
+  as_draws_df() %>%
+  select('r_school[84772,Intercept]', 'b_Intercept')
+
+```
+ 
+
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+#model coefs to tibble
+anova1_post <- as_draws_df(anova_m1)
+a <- anova1_post %>% select(contains("r_"))
+schools_post <- a + anova1_post$b_Intercept 
+
+schools_post1 <- posterior_summary(schools_post) %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var="school") 
+  
+schools_post1$school <- schools_post1$school %>% 
+  str_replace_all("r_school\\[", "") %>% 
+  str_replace_all(",Intercept\\]", "")
+
+sch_raw <- sch %>% group_by(school) %>% summarise(score = mean(score1))
+
+ggplot(schools_post1) + 
+  geom_pointinterval(aes(school, Estimate, ymin=`Q2.5`, ymax=`Q97.5`))+
+  geom_point(data=sch_raw, aes(school, score), size=1.5, color="red")+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
+  ggtitle("Shrinkage shown by the comparison of raw data (red) and model estimates (black")
+  
+```
+
+
+# 5. A full model that gives shrinkage to both mu and sigma, as well as modelling the correlation between them
+
+```{r eval=FALSE}
+anova_m3 <- brm(bf(score1~1 + (1|z|school), sigma~1+(1|z|school)), 
+                data=sch,
+                file = "models/anova_m3")
+
+anova3_post <- as_draws_df(anova_m3)
+a <- anova3_post %>% select(contains("r_school["))
+schools_post3 <- a + anova3_post$b_Intercept 
+
+
+schools_post3 <- posterior_summary(schools_post3) %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var="school") 
+  
+schools_post3$school <- schools_post3$school %>% 
+  str_replace_all("r_school\\[", "") %>% 
+  str_replace_all(",Intercept\\]", "")
+
+
+sch_raw <- sch %>% group_by(school) %>% summarise(score = mean(score1))
+
+ggplot(schools_post3) + geom_pointinterval(aes(school, Estimate, ymin=`Q2.5`, ymax=`Q97.5`))+
+  geom_point(data=sch_raw, aes(school, score), size=1.5, color="red")+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
+  ggtitle("Shrinkage shown by the comparison of raw data (red) and model estimates (black)")
+```
+
+
+# 6. A comparison model that gives shrinkage to both mu and sigma, w.o. modelling the correlation between them
+
+```{r eval=FALSE}
+anova_m4 <- brm(bf(score1~1 + (1|school), sigma~1+(1|school)), 
+                data=sch,
+                file = "models/anova_m4",
+                seed = 123)
+
+anova4_post <- as_draws_df(anova_m4)
+a <- anova4_post %>% select(contains("r_school["))
+schools_post4 <- a + anova4_post$b_Intercept 
+
+
+schools_post4 <- posterior_summary(schools_post4) %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var="school") 
+  
+schools_post4$school <- schools_post4$school %>% 
+  str_replace_all("r_school\\[", "") %>% 
+  str_replace_all(",Intercept\\]", "")
+
+
+sch_raw <- sch %>% group_by(school) %>% summarise(score = mean(score1))
+
+ggplot(schools_post4) + geom_pointinterval(aes(school, Estimate, ymin=`Q2.5`, ymax=`Q97.5`))+
+  geom_point(data=sch_raw, aes(school, score), size=1.5, color="red")+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
+  ggtitle("Shrinkage shown by the comparison of raw data (red) and model estimates (black)")
+```
+
+
+
+
+
+
+# Comparing models using loo() function
+
+```{r warning=FALSE, message=FALSE}
+lm1 <- loo(anova_m2)
+lm2 <- loo(anova_m2.3)
+lm3 <- loo(anova_m2.2)
+lm4 <- loo(anova_m1)
+lm5 <- loo(anova_m3)
+lm6 <- loo(anova_m4)
+loo_compare(lm1, lm2, lm3, lm4, lm5, lm6)
+```
+
+RULES FOR INTERPRETATION
+
+- small numbers =  no difference
+- otherwise use the rule for detecting difference: elpd_diff >3 times higher compared to se_diff
+
+
+
+
+# Modelling task
+
+Admission data of an university. Are female students discriminated?
+
+
+```{r message=FALSE}
+ucb <- read_csv("UCBadmit.csv")
+ucb 
+```
+
+
+This is what the dean saw:
+
+```{r echo=FALSE}
+ucb %>% group_by(sex=applicant.gender) %>% 
+         summarise(success_rate = sum(admit)/sum(applications)) 
+```
+
+Simple model confirms the discrimination. 
+
+```{r}
+m7.1 =  brm(admit|trials(applications) ~ applicant.gender,
+            family = binomial(),
+            data = ucb,
+            seed = 1,
+            file = "models/m7.1")
+
+m7.1 %>% conditional_effects(effects = "applicant.gender")
+```
+
+But try to find the truth using different modelling strategies:
+
+- additive model with adjusting to department
+- interaction model 'applicant.gender'*'dept'
+- hierarchical model
+
+

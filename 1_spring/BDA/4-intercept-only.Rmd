@@ -1,0 +1,485 @@
+---
+title: "Comparing two groups with continuous Y"
+author: "Pärt Prommik & Ülo Maiväli"
+date: '2022-23-02'
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+subtitle: Simple intercept-only models
+editor_options:
+  markdown:
+    wrap: 72
+---
+
+
+# Preparation
+
+- Clear workspace
+
+- Be sure that correct project is opened
+
+- Install necessary packages
+
+```{r}
+install.packages("bayestestR", "see")
+```
+
+- Define knitr  settings
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.width = 3, fig.height = 2)
+```
+
+- make a folder "models" into your project folder
+
+# Load necessary packages
+
+```{r}
+library(tidyverse)
+library(brms)
+library(patchwork)
+library(see)
+library(bayestestR)
+options(mc.cores = parallel::detectCores()) #sets your system to use multiple cores simultaneously for fitting models 
+```
+
+# Ingredients we need for modelling
+
+## Prior for typing speed (mean typed words per minute)
+
+Let's see our prior belief about intercept (female height)
+
+```{r}
+n = 100
+priors = bind_rows(
+  tibble(female_height = rnorm(n, 165, 3), response = rep("a")),
+  tibble(female_height = rnorm(n, 165, 15), response = rep("b")),
+  tibble(female_height = rnorm(n, 165, 75), response = rep("c")))
+
+p1 = priors %>% 
+  ggplot(aes(x = female_height))+
+  geom_density(size = 0.5)+
+  theme_classic()+
+  facet_wrap(~response)+
+  ggtitle("beta-intercept")
+
+p1
+```
+
+Let's see our prior belief about beta coefficent (male-female height difference)
+
+```{r}
+n = 100
+priors = bind_rows(
+  tibble(height_difference = rnorm(n, 10, 1), response = rep("a")),
+  tibble(height_difference = rnorm(n, 10, 15), response = rep("b")),
+  tibble(height_difference = rnorm(n, 0, 40), response = rep("c")))
+
+p2 = priors %>% 
+  ggplot(aes(x = height_difference))+
+  geom_density(size = 0.5)+
+  theme_classic()+
+  facet_wrap(~response)+
+  ggtitle("beta-coefficent")
+
+p2
+```
+
+Let's see our prior belief about the standard deviation of female height
+
+```{r}
+n = 100
+priors = bind_rows(
+  tibble(sd_of_height = rnorm(n, 2, 0.5), response = rep("a")),
+  tibble(sd_of_height = rnorm(n, 15, 6), response = rep("b")),
+  tibble(sd_of_height = rnorm(n, 15, 30), response = rep("c")))
+
+p3 = priors %>% 
+  ggplot(aes(x = sd_of_height))+
+  geom_density(size = 0.5)+
+  theme_classic()+
+  facet_wrap(~response)+
+  ggtitle("sigma")
+
+p3
+```
+
+
+## We need data
+
+Simulated heights by sex
+
+```{r}
+set.seed(123)
+n = 100
+data = bind_rows(
+  tibble(height = rnorm(n, 165, 8), sex = "Female"),
+  tibble(height = rnorm(n, 180, 10), sex = "Male")) %>% 
+  mutate(sex = as_factor(sex), sex = fct_relevel(sex, "Female", "Male"))
+```
+
+
+View your data
+
+```{r}
+data
+```
+
+
+Calculate mean and SD
+
+```{r}
+data %>%
+  group_by(sex) %>% 
+  summarise(mean = mean(height)) %>% 
+  pivot_wider(names_from = sex, values_from = mean) %>% 
+  mutate(Difference = Male - Female)
+```
+
+Density plot for both sexes
+
+```{r}
+plot1 = data %>% ggplot(aes(x = height, color = sex))+
+  geom_density()+
+  theme_classic()+
+  scale_x_continuous(limits = c(120, 220))
+plot1
+```
+
+# Modelling
+
+## Define priors for 3 models
+
+What priors can be set
+
+```{r}
+possible_prior_options = get_prior(
+  formula = height ~ sex,
+  data = data,
+  family = gaussian())
+
+possible_prior_options %>% as_tibble()
+```
+
+Let's see our priors
+
+```{r,fig.height=4, fig.width=3}
+p1/p2/p3
+```
+
+Let's define these priors for brms
+
+```{r}
+prior_a = c(
+  prior(normal(10,1), class = b),
+  prior(normal(165,3), class = Intercept),
+  prior(normal(2,0.5), class = sigma))
+
+prior_a %>% as_tibble()
+```
+
+
+
+```{r}
+prior_b = c(
+  prior(normal(10,15), class = b),
+  prior(normal(165,15), class = Intercept),
+  prior(normal(15,6), class = sigma))
+
+prior_b %>% as_tibble()
+```
+
+
+
+```{r}
+prior_c = c(
+  prior(normal(0,40), class = b),
+  prior(normal(165,75), class = Intercept),
+  prior(normal(15,30), class = sigma))
+
+prior_c %>% as_tibble()
+```
+
+
+## Run prior-only models
+
+```{r}
+m4.2.1 = brm(formula = height ~ sex, 
+         data = data, 
+         family = gaussian(), 
+         file = "models/m4.2.1", 
+         seed = 123, 
+         prior = prior_a,
+         sample_prior = "only")
+
+m4.2.2 = brm(formula = height ~ sex, 
+         data = data, 
+         family = gaussian(), 
+         file = "models/m4.2.2", 
+         seed = 123, 
+         prior = prior_b,
+         sample_prior = "only")
+
+m4.2.3 = brm(formula = height ~ sex, 
+         data = data, 
+         family = gaussian(), 
+         file = "models/m4.2.3", 
+         seed = 123, 
+         prior = prior_c,
+         sample_prior = "only")
+```
+
+
+Let's see our modelled prior beliefs
+
+```{r, fig.width=5, fig.height=2.5}
+conditional_effects1 = m4.2.1 %>% conditional_effects(effects = "sex") 
+
+conditional_effects2 = m4.2.2 %>% conditional_effects(effects = "sex") 
+
+conditional_effects3 = m4.2.3 %>% conditional_effects(effects = "sex") 
+
+panel_A = plot(conditional_effects1, plot = FALSE)[[1]] +
+  ggtitle("Too restricting\nprior (a)")
+
+panel_B = plot(conditional_effects2, plot = FALSE)[[1]] +
+  ggtitle("Quite reasonable\nprior (b)")
+
+panel_C = plot(conditional_effects3, plot = FALSE)[[1]] +
+  ggtitle("Too weak\nprior (c)")
+
+panel_A + panel_B + panel_C
+```
+
+## Run a model with the reasonable prior
+
+```{r}
+m4.2.4 = brm(formula = height ~ sex, 
+         data = data, 
+         family = gaussian(), 
+         file = "models/m4.2.4", 
+         seed = 123, 
+         prior = prior_b,
+         sample_prior = "yes")
+```
+
+Model summary
+
+```{r}
+m4.2.4
+```
+
+Let's review the summary in Powerpoint
+
+
+# Extracting uncertainty
+
+## Conditional effects
+
+```{r}
+m4.2.4 %>% conditional_effects(effects = "sex")
+
+#individual level prediction
+m4.2.4 %>% conditional_effects(effects = "sex", method = "posterior_predict")
+```
+
+## Calculating different statistics
+
+Model posterior includes all possible parameter values
+
+```{r}
+posterior1 = m4.2.4 %>% as_draws_df()
+
+posterior1
+```
+
+Let's calculate b_Intercept estimates manually
+
+```{r}
+posterior_summary1 = posterior1 %>% summarise(
+                        mean_female_height = mean(b_Intercept),
+                        lower_CI_for_mean = quantile(b_Intercept, probs = 0.025),
+                        upper_CI_for_mean = quantile(b_Intercept, probs = 0.975),
+                        
+                        mean_difference = mean(b_sexMale),
+                        lower_CI_for_difference = quantile(b_Intercept, probs = 0.025),
+                        upper_CI_for_difference = quantile(b_Intercept, probs = 0.975))
+
+posterior_summary1 %>% mutate(across(where(is.numeric), round, 2))
+```
+
+Same can be done automatically using brms function "posterior_summary()"
+
+```{r}
+m4.2.4 %>% posterior_summary() %>% as_tibble(rownames = "Posterior variable")
+```
+
+## Mean age for males
+
+Let's calculate a new variable named "mean_males_height" and use it as an input for "posterior_summary()"
+
+```{r}
+posterior1 %>% 
+  mutate(mean_males_height = b_Intercept + b_sexMale) %>% 
+  select(mean_males_height) %>% 
+  posterior_summary() %>% 
+  as_tibble(rownames = "Posterior variable")
+```
+Let's visualise male's mean height
+
+```{r}
+posterior2 = posterior1 %>% 
+  mutate(mean_males_height = b_Intercept + b_sexMale) %>% 
+  select(mean_males_height)
+
+hdi1 = hdi(posterior2$mean_males_height, ci = 0.95)
+
+plot(hdi1)+
+  scale_x_continuous(limits = c(170, 190))
+```
+
+How probable it is that males are taller?
+
+```{r}
+effect_direction = p_direction(posterior1$b_sexMale)
+
+effect_direction
+
+plot(effect_direction)
+```
+
+Calculating difference in other scales
+
+```{r}
+posterior3 = posterior1 %>% 
+  mutate(
+  female_height = b_Intercept,
+  male_height = b_Intercept + b_sexMale) %>% 
+  select(female_height, male_height)
+
+posterior4 = posterior3 %>% mutate(
+  difference_in_cm = male_height - female_height,
+  difference_in_times = male_height/female_height,
+  difference_in_percentages = 100-((female_height*100)/male_height))
+
+posterior4 %>% posterior_summary() %>% 
+  as_tibble(rownames = "Posterior variable")
+```
+
+
+# Let's do a comparison on hip fracture (HF) data
+
+Is the age of Estonian male and female HF patients different?
+
+## Load data
+
+```{r}
+HF_data_all <- read_csv("HF_data.csv")
+
+HF_data = HF_data_all %>% sample_n(size = 100)
+```
+
+```{r}
+names(HF_data)
+```
+
+
+
+## See age differences by sex
+
+using "summarise()" function
+
+```{r}
+HF_data %>% 
+  
+```
+
+using plotting 
+
+```{r}
+
+```
+
+
+## 
+
+```{r}
+HF_data %>% 
+  ggplot(aes(age, color = sex))+
+  geom_density()
+```
+
+
+
+```{r}
+modelname = brm(data = HF_data,
+            formula = age ~ sex,
+            family = gaussian())
+```
+
+
+```{r}
+y ~ x1 + x2 + ......
+```
+
+
+
+```{r}
+m_hf_1 = brm(age ~ sex, 
+             data = HF_data,
+             family = gaussian(),
+             file = "models/m_hf_1")
+
+m_hf_2 = brm(age ~ sex, 
+             data = HF_data,
+             family = skew_normal(),
+             file = "models/m_hf_2")
+
+m_hf_3 = brm(age ~ sex, 
+             data = HF_data,
+             family = student(),
+             file = "models/m_hf_3")
+```
+
+```{r}
+m_hf_1 %>% conditional_effects()
+
+m_hf_2 %>% conditional_effects()
+
+modelname %>% conditional_effects(method = "posterior_linpred")
+
+modelname %>% conditional_effects(method = "posterior_epred")
+
+modelname %>% conditional_effects(method = "posterior_predict")
+```
+
+```{r}
+m_hf_1 %>% as_draws_df() %>% #for getting posterior
+  ggplot(aes(b_sexm))+ #specifies x variable for ggplot
+  geom_histogram() #plot type
+```
+
+```{r}
+posterior2 = m_hf_1 %>% as_draws_df() 
+
+hypothesis(m_hf_1, "sex < -10")
+
+a = posterior2$b_sexm
+mean(a< -10)
+```
+
+
+
+
+
+Compare fits
+
+```{r}
+m_hf_1 %>% pp_check()
+
+m_hf_2 %>% pp_check()
+
+m_hf_3 %>% pp_check()
+```
+

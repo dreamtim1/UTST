@@ -1,0 +1,274 @@
+---
+title: "Modelling Bernoulli distribution"
+author: "Pärt Prommik & Ülo Maiväli"
+date: '2022-23-02'
+output:
+  html_document:
+---
+
+
+# Preparation
+
+- Clear workspace
+
+- Be sure that correct project is opened
+
+- Install necessary packages
+
+```{r}
+#install.packages()
+```
+
+- Define knitr  settings
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.width = 3, fig.height = 2)
+```
+
+- make a folder "models" into your project folder
+
+# Load necessary packages
+
+```{r}
+library(tidyverse)
+library(brms)
+library(patchwork)
+library(see)
+library(bayestestR)
+options(mc.cores = parallel::detectCores()) #sets your system to use multiple cores simultaneously while fitting models 
+```
+
+
+# Ingredients we need for modelling
+
+## Prior for the proportion of cat people among students
+
+Let's say we believe that most students are female who like cats. C seems resonable?
+
+```{r}
+#DEFINE YOUR BELIEF
+our_belief = 0.75 #define mean: what proportion like cats (reference level of our Y-variable)
+
+#let's define few standard deviation values for for the mean in log-odds scale (I know, this is not intuitive at first)
+sd1 = 0.1 
+sd2 = 0.4
+sd3 = 0.8
+sd4 = 2.5
+
+#PLOT CODE (no need to edit)
+prior_data = bind_rows(
+  tibble(log_odds = rnorm(1000, logit_scaled(our_belief), sd1), prior = str_c("A: mean = ", round(logit_scaled(our_belief), digits = 2), ", sd = ", sd1)),
+  tibble(log_odds = rnorm(1000, logit_scaled(our_belief), sd2), prior = str_c("B: mean = ", round(logit_scaled(our_belief), digits = 2), ", sd = ", sd2)),
+  tibble(log_odds = rnorm(1000, logit_scaled(our_belief), sd3), prior = str_c("C: mean = ", round(logit_scaled(our_belief), digits = 2), ", sd = ", sd3)),
+  tibble(log_odds = rnorm(1000, logit_scaled(our_belief), sd4), prior = str_c("D: mean = ", round(logit_scaled(our_belief), digits = 2), ", sd = ", sd4))) %>% mutate(probability = inv_logit_scaled(log_odds), prior = as_factor(prior))
+
+prior_data %>% ggplot(aes(x = probability))+
+  geom_density(fill = "grey80")+
+  scale_x_continuous(limits = c(0,1), labels = c(0, "", 0.5, "", 1))+
+  theme_classic()+
+  facet_wrap(~prior, nrow = 2, ncol = 2, scales = "free")
+```
+
+## We need data
+
+Your answers
+
+```{r}
+data = tibble(answer = c("Cat-person", "Dog-person", "Cat-person", "Dog-person", "Dog-person", "Cat-person", "Dog-person", "Cat-person", "Dog-person", "Dog-person", "Cat-person", "Dog-person", "Dog-person", "Dog-person", "Cat-person", "Dog-person", "Cat-person")) %>% mutate(answer = as_factor(answer), answer = fct_relevel(answer, "Dog-person", "Cat-person"))
+```
+
+
+View your data
+
+```{r}
+data
+```
+
+How factor levels are ordered
+
+```{r}
+levels(data$answer)
+```
+
+Calculate mean and SD
+
+```{r}
+summary_table = data %>%
+  group_by(answer) %>% 
+  summarise(n = n()) %>%
+  mutate(proportion = round(n/sum(n), digits = 2))
+
+summary_table
+```
+
+Let's make a density plot
+
+It includes only 17 observations, thus it is quite normal, flat (wide) distribution.
+
+```{r}
+plot1 = summary_table %>% 
+  ggplot(aes(x = answer, y = proportion))+
+  geom_col()+
+  scale_y_continuous(labels = scales::percent)+
+  theme_classic()
+
+plot1
+```
+
+# Modelling
+
+## Prior only model
+
+First, let's see what priors can be defined
+
+```{r}
+possible_prior_options = get_prior(
+  formula = answer ~ 1,
+  data = data,
+  family = bernoulli())
+
+possible_prior_options %>% as_tibble()
+```
+
+Let's define a prior in log-odds scale
+
+```{r}
+our_prior = c(
+  prior(normal(1.1,0.8), class = Intercept))
+
+our_prior %>% as_tibble()
+```
+
+Let's run a prior only model (the data, likelihoodd, is not included into calculations)
+
+```{r}
+m4.1 = brm(formula = answer ~ 1, 
+         data = data, 
+         family = bernoulli(), 
+         file = "models/m4.1", 
+         seed = 123,
+         prior = our_prior,
+         sample_prior = "only")
+```
+
+
+- model summary shows that logit link was used for mu
+
+```{r}
+m4.1
+```
+-- to transform intercept to a probability scale, we have to use inv_logit_scaled() function
+
+```{r}
+inv_logit_scaled(1.06)
+```
+
+
+
+- this is what prior-only thinks about the mean proportion of students who are cat persons
+
+```{r}
+posterior1 = m4.1 %>% 
+  as_draws_df() %>% 
+  mutate(b_Intercept_transformed = inv_logit_scaled(b_Intercept))
+  
+posterior1 %>% summarise(mean_b_Intercept = mean(b_Intercept),
+                         mean_b_Intercept_transformed = mean(b_Intercept_transformed))
+```
+
+-- let's plot these posterior variables
+
+```{r}
+hdi1 = plot(hdi(posterior1$b_Intercept, ci = 0.95)) + ggtitle("Log-odds scale")
+
+hdi2 = plot(hdi(posterior1$b_Intercept_transformed, ci = 0.95)) + ggtitle("Probability scale")
+
+hdi1/hdi2
+```
+
+Let's now run a model with default prior
+
+```{r}
+m4.2 = brm(formula = answer ~ 1, 
+         data = data, 
+         family = bernoulli(), 
+         file = "models/m4.2", 
+         seed = 123,
+         sample_prior = "yes")
+```
+- model summary
+
+```{r}
+m4.2
+```
+
+
+
+- this is what our mostly data-based model thinks about the mean proportion of students who are cat persons
+
+```{r}
+posterior2 = m4.2 %>% 
+  as_draws_df() %>% 
+  mutate(b_Intercept_transformed = inv_logit_scaled(b_Intercept),
+         prior_Intercept_transformed = inv_logit_scaled(prior_Intercept))
+  
+hdi3 = plot(hdi(posterior2$b_Intercept_transformed, ci = 0.95)) + ggtitle("Probability scale b_Intercept")
+
+hdi4 = plot(hdi(posterior2$prior_Intercept_transformed, ci = 0.95)) + ggtitle("Used prior in probability scale")
+
+hdi3 / hdi4
+```
+
+Let's run a model with our prior
+
+```{r}
+m4.3 = brm(formula = answer ~ 1, 
+         data = data, 
+         family = bernoulli(), 
+         file = "models/m4.3", 
+         seed = 123, 
+         prior = our_prior,
+         sample_prior = "yes")
+```
+
+- this is what our data- and prior-based model thinks about the mean proportion of students who are cat persons
+
+```{r}
+posterior3 = m4.3 %>% 
+  as_draws_df() %>% 
+  mutate(b_Intercept_transformed = inv_logit_scaled(b_Intercept),
+         prior_Intercept_transformed = inv_logit_scaled(prior_Intercept))
+  
+hdi5 = plot(hdi(posterior3$b_Intercept_transformed, ci = 0.95)) + ggtitle("Probability scale b_Intercept")
+
+hdi6 = plot(hdi(posterior3$prior_Intercept_transformed, ci = 0.95)) + ggtitle("Used prior in probability scale")
+
+hdi5 / hdi6
+```
+
+Let's calculate necessary estimates
+
+```{r}
+posterior3 %>% select(b_Intercept, b_Intercept_transformed) %>% 
+  posterior_summary() %>% 
+  as_tibble(rownames = "Posterior variable") %>% 
+  mutate(across(where(is.numeric), round, 2))
+```
+
+
+The influence of our prior
+
+```{r, fig.width=5, fig.height=3}
+hdi3 = hdi3 + ggtitle("m4.2: b_Intercept") + scale_x_continuous(limits = c(0,1))
+hdi4 = hdi4 + ggtitle("m4.2: default prior") + scale_x_continuous(limits = c(0,1))
+hdi5 = hdi5 + ggtitle("m4.3: b_Intercept") + scale_x_continuous(limits = c(0,1))
+hdi6 = hdi6 + ggtitle("m4.3: our prior") + scale_x_continuous(limits = c(0,1))
+
+(hdi3 + hdi4)/
+(hdi5 + hdi6) + plot_layout(guides = "collect")
+```
+
+# Conclusion
+
+Our model thinks that 50% [95% CI: 0.32-0.70] of students are cat-persons.
+
